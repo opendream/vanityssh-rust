@@ -1,8 +1,8 @@
 // tests/thread_pool_tests.rs
 // Created: 2025-04-22 14:30:00 by kengggg
 
-use ed25519_vanity_rust::thread_pool::{run_thread_pool, ThreadPoolConfig};
 use std::time::Duration;
+use vanityssh_rust::thread_pool::{run_thread_pool, ThreadPoolConfig};
 
 #[test]
 fn test_thread_pool_basic() {

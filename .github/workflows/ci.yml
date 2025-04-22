@@ -72,19 +72,19 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         uses: actions/upload-artifact@v4
         with:
-          name: ed25519-vanity-rust-linux
-          path: target/release/ed25519-vanity-rust
+          name: vanityssh-rust-linux
+          path: target/release/vanityssh-rust
 
       - name: Upload release binary (macOS)
         if: matrix.os == 'macos-latest'
         uses: actions/upload-artifact@v4
         with:
-          name: ed25519-vanity-rust-macos
-          path: target/release/ed25519-vanity-rust
+          name: vanityssh-rust-macos
+          path: target/release/vanityssh-rust
 
       - name: Upload release binary (Windows)
         if: matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v4
         with:
-          name: ed25519-vanity-rust-windows
-          path: target/release/ed25519-vanity-rust.exe
+          name: vanityssh-rust-windows
+          path: target/release/vanityssh-rust.exe

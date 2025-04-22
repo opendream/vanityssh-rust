@@ -15,4 +15,4 @@ pub const ED25519_KEY_TYPE: &str = "ssh-ed25519";
 pub const OPENSSH_MAGIC_BYTES: &[u8] = b"openssh-key-v1\0";
 
 /// The ED25519 comment to use (can be customized later)
-pub const DEFAULT_COMMENT: &str = "ed25519-vanity-key";
+pub const DEFAULT_COMMENT: &str = "vanityssh-key";

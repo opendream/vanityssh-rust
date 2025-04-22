@@ -1,8 +1,8 @@
 // tests/tests.rs
 // Updated: 2025-04-22 14:12:15 by kengggg
 
-use ed25519_vanity_rust::{keygen, matcher, stream_keys_and_match, PerformanceMetrics};
 use std::time::Duration;
+use vanityssh_rust::{keygen, matcher, stream_keys_and_match, PerformanceMetrics};
 
 #[test]
 fn test_generate_key_pair() {

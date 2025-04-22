@@ -1,7 +1,13 @@
 [package]
-name = "ed25519-vanity-rust"
+name = "vanityssh-rust"
 version = "0.1.0"
 edition = "2021"
+description = "Generate SSH key pairs whose public keys match a user-specified regex pattern"
+authors = ["kengggg"]
+license = "MIT"
+repository = "https://github.com/opemdream/vanityssh-rust"
+keywords = ["ssh", "ed25519", "key-generation", "vanity", "cryptography"]
+categories = ["command-line-utilities", "cryptography"]
 
 [dependencies]
 ed25519-dalek = "1.0.1"

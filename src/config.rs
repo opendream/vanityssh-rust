@@ -1,7 +1,7 @@
 // src/config.rs
 use std::process;
 
-/// Configuration for the application
+/// Configuration options for the VanitySSH program
 pub struct Config<'a> {
     pub pattern: &'a str,
     pub streaming: bool,
@@ -102,6 +102,19 @@ impl<'a> Config<'a> {
             comment,
             threads,
         }
+    }
+
+    /// Display usage information
+    pub fn display_help() {
+        println!("VanitySSH - Generate SSH keys with custom patterns");
+        println!();
+        println!("Usage: vanityssh-rust <pattern> [OPTIONS]");
+        println!("  pattern         : Regex pattern to match against the generated keys");
+        println!("  --streaming     : Continue generating keys after a match is found");
+        println!("  --comment       : Add a comment to the SSH public key");
+        println!("  --case-sensitive: Make pattern matching case-sensitive (default is case-insensitive)");
+        println!("  --threads <N>   : Number of threads to use (default: number of CPU cores)");
+        println!("  --help          : Display this help message");
     }
 }
 

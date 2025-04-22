@@ -2,9 +2,9 @@
 // Updated: 2025-04-22 14:16:30 by kengggg
 // Removed match_full parameter from tests
 
-use ed25519_vanity_rust::{keygen, matcher};
 use std::fs;
 use std::path::Path;
+use vanityssh_rust::{keygen, matcher};
 
 #[test]
 fn test_openssh_key_format() {

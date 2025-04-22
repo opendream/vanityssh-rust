@@ -1,6 +1,6 @@
 // src/main.rs
-use ed25519_vanity_rust::{error::Result, stream_openssh_keys_and_match_mt};
 use std::env;
+use vanityssh_rust::{error::Result, stream_openssh_keys_and_match_mt};
 
 mod config;
 mod validation;
@@ -8,9 +8,9 @@ mod validation;
 use config::Config;
 use validation::{display_thread_info, validate_pattern, validate_threads};
 
-/// Entry point for the Ed25519 vanity key generation application
+/// Entry point for the VanitySSH key generation application
 ///
-/// This application generates Ed25519 key pairs until it finds one
+/// This application generates SSH key pairs until it finds one
 /// whose public key matches a specified regex pattern.
 ///
 /// The application flow is:

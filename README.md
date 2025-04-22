@@ -1,6 +1,6 @@
-# Ed25519 Vanity Key Generator
+# VanitySSH
 
-Generate Ed25519 SSH key pairs whose public keys match a user-specified regex pattern. Supports multi-threaded key generation and OpenSSH-compatible output.
+Generate SSH key pairs whose public keys match a user-specified regex pattern. Supports multi-threaded key generation and OpenSSH-compatible output.
 
 ## Features
 - Customizable regex pattern matching for public keys
@@ -15,15 +15,15 @@ Generate Ed25519 SSH key pairs whose public keys match a user-specified regex pa
 Clone the repository and build with Cargo:
 
 ```sh
-git clone https://github.com/yourusername/ed25519-vanity-rust.git
-cd ed25519-vanity-rust
+git clone https://github.com/opendream/vanityssh-rust.git
+cd vanityssh-rust
 cargo build --release
 ```
 
 ## Usage
 
 ```
-Usage: ed25519-vanity-rust <pattern> [OPTIONS]
+Usage: vanityssh-rust <pattern> [OPTIONS]
   pattern         : Regex pattern to match against the generated keys
   --streaming     : Continue generating keys after a match is found
   --comment       : Add a comment to the SSH public key
@@ -36,17 +36,17 @@ Usage: ed25519-vanity-rust <pattern> [OPTIONS]
 
 #### Find a key whose public key starts with 'abc':
 ```sh
-./target/release/ed25519-vanity-rust '^abc'
+./target/release/vanityssh-rust '^abc'
 ```
 
 #### Find a key with a case-sensitive pattern and add a comment:
 ```sh
-./target/release/ed25519-vanity-rust 'MyPattern' --case-sensitive --comment "mykey@host"
+./target/release/vanityssh-rust 'MyPattern' --case-sensitive --comment "mykey@host"
 ```
 
 #### Use 8 threads and keep searching for more matches (streaming):
 ```sh
-./target/release/ed25519-vanity-rust 'test' --threads 8 --streaming
+./target/release/vanityssh-rust 'test' --threads 8 --streaming
 ```
 
 ## Configuration Options
