@@ -14,8 +14,8 @@ pub fn matches_pattern(key: &str, pattern: &str, case_sensitive: bool) -> Result
     // 2. If we want case-sensitive matching, ensure (?i) is not present
     let effective_pattern = if case_sensitive {
         // Remove (?i) prefix if it exists for case-sensitive matching
-        if pattern.starts_with("(?i)") {
-            pattern[4..].to_string()
+        if let Some(stripped) = pattern.strip_prefix("(?i)") {
+            stripped.to_string()
         } else {
             pattern.to_string()
         }

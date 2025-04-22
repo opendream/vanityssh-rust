@@ -11,6 +11,7 @@ use crate::error::Result;
 use crate::thread_pool::{run_thread_pool, ThreadPoolConfig};
 use chrono::Local;
 use indicatif::{ProgressBar, ProgressStyle};
+use std::fmt;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -21,6 +22,25 @@ pub struct PerformanceMetrics {
     pub matches_found: u64,
     pub duration: Duration,
     pub keys_per_second: f64,
+}
+
+impl Default for PerformanceMetrics {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl fmt::Display for PerformanceMetrics {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Attempts: {} | Matches: {} | Duration: {:.2}s | Speed: {:.2} keys/sec",
+            self.attempts,
+            self.matches_found,
+            self.duration.as_secs_f64(),
+            self.keys_per_second
+        )
+    }
 }
 
 impl PerformanceMetrics {
@@ -45,17 +65,6 @@ impl PerformanceMetrics {
         if seconds > 0.0 {
             self.keys_per_second = attempts as f64 / seconds;
         }
-    }
-
-    /// Returns a formatted string representation of the metrics
-    pub fn to_string(&self) -> String {
-        format!(
-            "Attempts: {} | Matches: {} | Duration: {:.2}s | Speed: {:.2} keys/sec",
-            self.attempts,
-            self.matches_found,
-            self.duration.as_secs_f64(),
-            self.keys_per_second
-        )
     }
 }
 
@@ -143,10 +152,10 @@ pub fn stream_openssh_keys_and_match_mt(
                 );
                 println!("Public Key:  {}", key_match.public_key);
                 println!("Private Key:\n{}", key_match.private_key);
-                println!("Performance: {}", metrics.to_string());
+                println!("Performance: {}", metrics);
 
                 // If not in streaming mode, exit
-                if !streaming {
+                if (!streaming) {
                     break;
                 }
 
@@ -169,7 +178,7 @@ pub fn stream_openssh_keys_and_match_mt(
                     metrics.update(attempts, matches, elapsed);
                     pb.set_message(format!(
                         "{} (Threads: {})",
-                        metrics.to_string(),
+                        metrics,
                         thread_count
                     ));
 
