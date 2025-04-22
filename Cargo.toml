@@ -1,0 +1,21 @@
+[package]
+name = "ed25519-vanity-rust"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ed25519-dalek = { version = "1.0", features = ["rand"] }
+hex = "0.4.3"
+rand = "0.7" # Use a version compatible with `ed25519-dalek`
+regex = "1"
+
+# Dependencies for error handling and metrics
+thiserror = "1.0.37"  # For better error types
+indicatif = "0.17.3"  # For progress bars and spinner
+chrono = "0.4.23"     # For time formatting
+
+[dev-dependencies]
+assert_cmd = "2.0.8"     # For testing CLI applications
+predicates = "2.1.5"     # For testing command output
