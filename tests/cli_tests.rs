@@ -1,5 +1,5 @@
 // tests/cli_tests.rs
-// Updated: 2025-04-22 13:52:25 by kengggg
+// Updated: 2025-04-22 14:07:45 by kengggg
 
 use assert_cmd::Command;
 use predicates::prelude::*;
@@ -33,7 +33,7 @@ fn test_cli_with_invalid_regex() {
         .timeout(Duration::from_secs(5))
         .assert()
         .failure()
-        .stderr(predicate::str::contains("InvalidRegex")); // Updated to match new error format
+        .stderr(predicate::str::contains("InvalidRegex"));
 }
 
 #[test]
@@ -48,4 +48,16 @@ fn test_cli_with_openssh_format() {
         .success()
         .stdout(predicate::str::contains("ssh-ed25519"))
         .stdout(predicate::str::contains("BEGIN OPENSSH PRIVATE KEY"));
+}
+
+#[test]
+fn test_cli_with_case_sensitive_option() {
+    let mut cmd = Command::cargo_bin("ed25519-vanity-rust").unwrap();
+
+    cmd.arg(".*")
+        .arg("--case-sensitive")
+        .timeout(Duration::from_secs(10))
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Match found"));
 }

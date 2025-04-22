@@ -1,5 +1,5 @@
 // tests/openssh_tests.rs
-// Updated: 2025-04-22 13:58:15 by kengggg
+// Updated: 2025-04-22 14:11:30 by kengggg
 
 use ed25519_vanity_rust::{keygen, matcher};
 use std::path::Path;
@@ -28,13 +28,30 @@ fn test_ssh_key_matching() {
     let parts: Vec<&str> = public_key.split_whitespace().collect();
     let base64_part = parts[1];
 
-    // Test that matching works on the base64 part
-    let pattern = &base64_part[0..5]; // Use first 5 chars as pattern
-    assert!(matcher::ssh_key_matches_pattern(&public_key, pattern, false).unwrap());
+    // Test that matching works on the base64 part with a lowercase pattern
+    // This should work with case-insensitive matching
+    let lower_pattern = "a";
+    assert!(matcher::ssh_key_matches_pattern(&public_key, lower_pattern, false, false).unwrap());
+
+    // Test that case-sensitive matching works properly with an exact pattern
+    let exact_prefix = &base64_part[0..5]; // Get exact prefix for case-sensitive match
+    assert!(matcher::ssh_key_matches_pattern(&public_key, exact_prefix, false, true).unwrap(),
+           "Case-sensitive matching should work with exact case");
+
+    // Test that case-sensitive matching fails with wrong case
+    // This ensures that case sensitivity is working as expected
+    let wrong_case = if exact_prefix.chars().next().unwrap().is_uppercase() {
+        exact_prefix.to_lowercase()
+    } else {
+        exact_prefix.to_uppercase()
+    };
+
+    assert!(!matcher::ssh_key_matches_pattern(&public_key, &wrong_case, false, true).unwrap(),
+           "Case-sensitive matching should fail with wrong case");
 
     // Test full matching with proper regex escaping
     let escaped_public_key = regex::escape(&public_key);
-    assert!(matcher::ssh_key_matches_pattern(&public_key, &escaped_public_key, true).unwrap());
+    assert!(matcher::ssh_key_matches_pattern(&public_key, &escaped_public_key, true, true).unwrap());
 }
 
 #[test]

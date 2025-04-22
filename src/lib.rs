@@ -1,5 +1,5 @@
 // src/lib.rs
-// Updated: 2025-04-22 13:40:02 by kengggg
+// Updated: 2025-04-22 14:05:30 by kengggg
 
 pub mod keygen;
 pub mod matcher;
@@ -63,11 +63,13 @@ impl PerformanceMetrics {
 /// The `comment` parameter will be used in the SSH public key if provided.
 /// The `match_full` parameter determines whether to match against the full SSH key
 /// or just the base64-encoded portion.
+/// The `case_sensitive` parameter determines whether the pattern matching is case sensitive.
 pub fn stream_openssh_keys_and_match(
     pattern: &str,
     streaming: bool,
     comment: Option<&str>,
-    match_full: bool
+    match_full: bool,
+    case_sensitive: bool
 ) -> Result<PerformanceMetrics> {
     // Initialize progress bar
     let pb = ProgressBar::new_spinner();
@@ -104,7 +106,7 @@ pub fn stream_openssh_keys_and_match(
         }
 
         // Check if the key matches the pattern
-        match matcher::ssh_key_matches_pattern(&public_key, pattern, match_full) {
+        match matcher::ssh_key_matches_pattern(&public_key, pattern, match_full, case_sensitive) {
             Ok(true) => {
                 matches_found += 1;
                 let timestamp = Local::now().format("%Y-%m-%d %H:%M:%S");
@@ -153,8 +155,8 @@ pub fn stream_openssh_keys_and_match(
     Ok(metrics)
 }
 
-// Keep the original function for compatibility
-pub fn stream_keys_and_match(pattern: &str, streaming: bool) -> Result<PerformanceMetrics> {
+// Keep the original function for compatibility, but add case sensitivity option
+pub fn stream_keys_and_match(pattern: &str, streaming: bool, case_sensitive: bool) -> Result<PerformanceMetrics> {
     // Initialize progress bar
     let pb = ProgressBar::new_spinner();
     pb.set_style(
@@ -190,7 +192,7 @@ pub fn stream_keys_and_match(pattern: &str, streaming: bool) -> Result<Performan
         }
 
         // Check if the key matches the pattern
-        match matcher::matches_pattern(&public_key, pattern) {
+        match matcher::matches_pattern(&public_key, pattern, case_sensitive) {
             Ok(true) => {
                 matches_found += 1;
                 let timestamp = Local::now().format("%Y-%m-%d %H:%M:%S");
@@ -239,7 +241,7 @@ pub fn stream_keys_and_match(pattern: &str, streaming: bool) -> Result<Performan
     Ok(metrics)
 }
 
-// Add a test helper function
+// For test helper function
 #[cfg(test)]
 pub fn generate_n_keys(n: u64) -> Result<PerformanceMetrics> {
     let mut metrics = PerformanceMetrics::new();
