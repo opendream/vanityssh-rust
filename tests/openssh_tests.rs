@@ -1,5 +1,6 @@
 // tests/openssh_tests.rs
-// Updated: 2025-04-22 14:11:30 by kengggg
+// Updated: 2025-04-22 14:16:30 by kengggg
+// Removed match_full parameter from tests
 
 use ed25519_vanity_rust::{keygen, matcher};
 use std::path::Path;
@@ -31,11 +32,11 @@ fn test_ssh_key_matching() {
     // Test that matching works on the base64 part with a lowercase pattern
     // This should work with case-insensitive matching
     let lower_pattern = "a";
-    assert!(matcher::ssh_key_matches_pattern(&public_key, lower_pattern, false, false).unwrap());
+    assert!(matcher::ssh_key_matches_pattern(&public_key, lower_pattern, false).unwrap());
 
     // Test that case-sensitive matching works properly with an exact pattern
     let exact_prefix = &base64_part[0..5]; // Get exact prefix for case-sensitive match
-    assert!(matcher::ssh_key_matches_pattern(&public_key, exact_prefix, false, true).unwrap(),
+    assert!(matcher::ssh_key_matches_pattern(&public_key, exact_prefix, true).unwrap(),
            "Case-sensitive matching should work with exact case");
 
     // Test that case-sensitive matching fails with wrong case
@@ -46,12 +47,8 @@ fn test_ssh_key_matching() {
         exact_prefix.to_uppercase()
     };
 
-    assert!(!matcher::ssh_key_matches_pattern(&public_key, &wrong_case, false, true).unwrap(),
+    assert!(!matcher::ssh_key_matches_pattern(&public_key, &wrong_case, true).unwrap(),
            "Case-sensitive matching should fail with wrong case");
-
-    // Test full matching with proper regex escaping
-    let escaped_public_key = regex::escape(&public_key);
-    assert!(matcher::ssh_key_matches_pattern(&public_key, &escaped_public_key, true, true).unwrap());
 }
 
 #[test]

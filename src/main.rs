@@ -1,5 +1,6 @@
 // src/main.rs
-// Updated: 2025-04-22 14:07:00 by kengggg
+// Updated: 2025-04-22 14:20:00 by kengggg
+// Improved argument parsing to support flexible ordering
 
 use std::env;
 use std::process;
@@ -10,29 +11,81 @@ fn main() -> Result<()> {
     let args: Vec<String> = env::args().collect();
 
     if args.len() < 2 {
-        eprintln!("Usage: {} <pattern> [--streaming] [--comment <comment>] [--match-full] [--case-sensitive]", args[0]);
-        eprintln!("  pattern        : Regex pattern to match against the generated keys");
-        eprintln!("  --streaming    : Continue generating keys after a match is found");
-        eprintln!("  --comment      : Add a comment to the SSH public key");
-        eprintln!("  --match-full   : Match against the full SSH key (default is to match only the base64 part)");
-        eprintln!("  --case-sensitive: Make pattern matching case-sensitive (default is case-insensitive)");
+        print_usage(&args[0]);
         process::exit(1);
     }
 
-    // Get the pattern from the first argument
-    let pattern = &args[1];
+    // Process arguments more flexibly
+    let mut pattern = None;
+    let mut streaming = false;
+    let mut case_sensitive = false;
+    let mut comment = None;
+    let mut i = 1;
 
-    // Check for options
-    let streaming = args.iter().any(|arg| arg == "--streaming");
-    let match_full = args.iter().any(|arg| arg == "--match-full");
-    let case_sensitive = args.iter().any(|arg| arg == "--case-sensitive");
+    while i < args.len() {
+        match args[i].as_str() {
+            "--streaming" => {
+                streaming = true;
+                i += 1;
+            },
+            "--case-sensitive" => {
+                case_sensitive = true;
+                i += 1;
+            },
+            "--comment" => {
+                if i + 1 < args.len() {
+                    comment = Some(args[i + 1].as_str());
+                    i += 2;
+                } else {
+                    eprintln!("Error: --comment requires a value");
+                    print_usage(&args[0]);
+                    process::exit(1);
+                }
+            },
+            "--help" => {
+                print_usage(&args[0]);
+                process::exit(0);
+            },
+            arg if arg.starts_with("--") => {
+                eprintln!("Error: Unknown option: {}", arg);
+                print_usage(&args[0]);
+                process::exit(1);
+            },
+            _ => {
+                // If not an option, treat as pattern
+                if pattern.is_none() {
+                    pattern = Some(args[i].as_str());
+                } else {
+                    eprintln!("Error: Multiple patterns specified");
+                    print_usage(&args[0]);
+                    process::exit(1);
+                }
+                i += 1;
+            }
+        }
+    }
 
-    // Get comment if specified
-    let comment = args.iter().position(|arg| arg == "--comment")
-        .and_then(|pos| if pos + 1 < args.len() { Some(args[pos + 1].as_str()) } else { None });
+    // Ensure we have a pattern
+    let pattern = match pattern {
+        Some(p) => p,
+        None => {
+            eprintln!("Error: No pattern specified");
+            print_usage(&args[0]);
+            process::exit(1);
+        }
+    };
 
     // Generate keys and match against pattern
-    let _ = stream_openssh_keys_and_match(pattern, streaming, comment, match_full, case_sensitive)?;
+    let _ = stream_openssh_keys_and_match(pattern, streaming, comment, case_sensitive)?;
 
     Ok(())
+}
+
+fn print_usage(program_name: &str) {
+    eprintln!("Usage: {} <pattern> [OPTIONS]", program_name);
+    eprintln!("  pattern        : Regex pattern to match against the generated keys");
+    eprintln!("  --streaming    : Continue generating keys after a match is found");
+    eprintln!("  --comment      : Add a comment to the SSH public key");
+    eprintln!("  --case-sensitive: Make pattern matching case-sensitive (default is case-insensitive)");
+    eprintln!("  --help         : Display this help message");
 }

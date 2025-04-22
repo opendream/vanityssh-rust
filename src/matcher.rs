@@ -1,5 +1,5 @@
 // src/matcher.rs
-// Updated: 2025-04-22 14:10:30 by kengggg
+// Updated: 2025-04-22 14:15:00 by kengggg
 
 use regex::Regex;
 use crate::error::{Result, VanityError};
@@ -39,17 +39,11 @@ pub fn matches_pattern(key: &str, pattern: &str, case_sensitive: bool) -> Result
 }
 
 /// Checks if an SSH public key matches a regex pattern.
-/// This function can match either against the full SSH key string
-/// or just the base64-encoded portion, depending on the full_match parameter.
+/// The function extracts the base64-encoded part of the key and matches against that.
 ///
 /// If case_sensitive is false, the pattern is treated as case-insensitive.
-pub fn ssh_key_matches_pattern(ssh_key: &str, pattern: &str, full_match: bool, case_sensitive: bool) -> Result<bool> {
-    if full_match {
-        // Match against the full SSH key string
-        matches_pattern(ssh_key, pattern, case_sensitive)
-    } else {
-        // Extract the base64 part and match against that
-        let base64_part = extract_ssh_key_data(ssh_key)?;
-        matches_pattern(&base64_part, pattern, case_sensitive)
-    }
+pub fn ssh_key_matches_pattern(ssh_key: &str, pattern: &str, case_sensitive: bool) -> Result<bool> {
+    // Extract the base64 part and match against that
+    let base64_part = extract_ssh_key_data(ssh_key)?;
+    matches_pattern(&base64_part, pattern, case_sensitive)
 }

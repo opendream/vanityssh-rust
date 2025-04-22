@@ -1,5 +1,6 @@
 // src/lib.rs
-// Updated: 2025-04-22 14:05:30 by kengggg
+// Updated: 2025-04-22 14:15:30 by kengggg
+// Removed match_full parameter from stream_openssh_keys_and_match
 
 pub mod keygen;
 pub mod matcher;
@@ -61,14 +62,11 @@ impl PerformanceMetrics {
 /// Returns performance metrics for the operation.
 ///
 /// The `comment` parameter will be used in the SSH public key if provided.
-/// The `match_full` parameter determines whether to match against the full SSH key
-/// or just the base64-encoded portion.
 /// The `case_sensitive` parameter determines whether the pattern matching is case sensitive.
 pub fn stream_openssh_keys_and_match(
     pattern: &str,
     streaming: bool,
     comment: Option<&str>,
-    match_full: bool,
     case_sensitive: bool
 ) -> Result<PerformanceMetrics> {
     // Initialize progress bar
@@ -106,7 +104,7 @@ pub fn stream_openssh_keys_and_match(
         }
 
         // Check if the key matches the pattern
-        match matcher::ssh_key_matches_pattern(&public_key, pattern, match_full, case_sensitive) {
+        match matcher::ssh_key_matches_pattern(&public_key, pattern, case_sensitive) {
             Ok(true) => {
                 matches_found += 1;
                 let timestamp = Local::now().format("%Y-%m-%d %H:%M:%S");
@@ -155,7 +153,7 @@ pub fn stream_openssh_keys_and_match(
     Ok(metrics)
 }
 
-// Keep the original function for compatibility, but add case sensitivity option
+// Keep the original function for compatibility, but simplify parameters
 pub fn stream_keys_and_match(pattern: &str, streaming: bool, case_sensitive: bool) -> Result<PerformanceMetrics> {
     // Initialize progress bar
     let pb = ProgressBar::new_spinner();
