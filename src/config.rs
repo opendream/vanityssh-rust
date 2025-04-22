@@ -117,16 +117,3 @@ impl<'a> Config<'a> {
         println!("  --help          : Display this help message");
     }
 }
-
-/// Print usage instructions - kept for backward compatibility with tests
-pub fn print_usage(program_name: &str) {
-    eprintln!("Usage: {} <pattern> [OPTIONS]", program_name);
-    eprintln!("  pattern         : Regex pattern to match against the generated keys");
-    eprintln!("  --streaming     : Continue generating keys after a match is found");
-    eprintln!("  --comment       : Add a comment to the SSH public key");
-    eprintln!(
-        "  --case-sensitive: Make pattern matching case-sensitive (default is case-insensitive)"
-    );
-    eprintln!("  --threads <N>   : Number of threads to use (default: number of CPU cores)");
-    eprintln!("  --help          : Display this help message");
-}

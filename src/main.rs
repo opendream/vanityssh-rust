@@ -5,7 +5,7 @@ use vanityssh_rust::{error::Result, stream_openssh_keys_and_match_mt};
 mod config;
 mod validation;
 
-use config::{print_usage, Config};
+use config::Config;
 use validation::{display_thread_info, validate_pattern, validate_threads};
 
 /// Entry point for the VanitySSH key generation application
