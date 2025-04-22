@@ -1,19 +1,19 @@
 // src/lib.rs
 // Updated: 2025-04-22 14:27:00 by kengggg
 
+pub mod error;
 pub mod keygen;
 pub mod matcher;
-pub mod error;
 pub mod ssh;
-pub mod thread_pool;  // New module
+pub mod thread_pool; // New module
 
-use std::time::{Duration, Instant};
+use crate::error::Result;
+use crate::thread_pool::{run_thread_pool, ThreadPoolConfig};
+use chrono::Local;
+use indicatif::{ProgressBar, ProgressStyle};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
-use indicatif::{ProgressBar, ProgressStyle};
-use chrono::Local;
-use crate::error::Result;
-use crate::thread_pool::{ThreadPoolConfig, run_thread_pool};
+use std::time::{Duration, Instant};
 
 /// Performance metrics for key generation
 pub struct PerformanceMetrics {
@@ -79,7 +79,7 @@ pub fn stream_openssh_keys_and_match_mt(
     streaming: bool,
     comment: Option<&str>,
     case_sensitive: bool,
-    threads: Option<usize>
+    threads: Option<usize>,
 ) -> Result<PerformanceMetrics> {
     // Determine thread count: use provided value or CPU count
     let thread_count = threads.unwrap_or_else(num_cpus::get);
@@ -89,7 +89,7 @@ pub fn stream_openssh_keys_and_match_mt(
     pb.set_style(
         ProgressStyle::default_spinner()
             .template("{spinner:.green} {msg}")
-            .unwrap()
+            .unwrap(),
     );
 
     // Performance tracking
@@ -137,8 +137,10 @@ pub fn stream_openssh_keys_and_match_mt(
                 pb.finish_and_clear();
 
                 // Report the match
-                println!("\n[{}] Match found after {} attempts by thread {}!",
-                    timestamp, attempts, key_match.thread_id);
+                println!(
+                    "\n[{}] Match found after {} attempts by thread {}!",
+                    timestamp, attempts, key_match.thread_id
+                );
                 println!("Public Key:  {}", key_match.public_key);
                 println!("Private Key:\n{}", key_match.private_key);
                 println!("Performance: {}", metrics.to_string());
@@ -152,10 +154,10 @@ pub fn stream_openssh_keys_and_match_mt(
                 pb.set_style(
                     ProgressStyle::default_spinner()
                         .template("{spinner:.green} {msg}")
-                        .unwrap()
+                        .unwrap(),
                 );
                 pb.enable_steady_tick(Duration::from_millis(100));
-            },
+            }
             Err(_) => {
                 // Timeout occurred (no match yet), update progress
                 let now = Instant::now();
@@ -165,7 +167,11 @@ pub fn stream_openssh_keys_and_match_mt(
                     let matches = matches_found.load(Ordering::Relaxed);
 
                     metrics.update(attempts, matches, elapsed);
-                    pb.set_message(format!("{} (Threads: {})", metrics.to_string(), thread_count));
+                    pb.set_message(format!(
+                        "{} (Threads: {})",
+                        metrics.to_string(),
+                        thread_count
+                    ));
 
                     last_update = now;
                 }
@@ -189,14 +195,18 @@ pub fn stream_openssh_keys_and_match(
     pattern: &str,
     streaming: bool,
     comment: Option<&str>,
-    case_sensitive: bool
+    case_sensitive: bool,
 ) -> Result<PerformanceMetrics> {
     // By default, use the multi-threaded version with 1 thread
     stream_openssh_keys_and_match_mt(pattern, streaming, comment, case_sensitive, Some(1))
 }
 
 // Original stream_keys_and_match for backward compatibility
-pub fn stream_keys_and_match(pattern: &str, streaming: bool, case_sensitive: bool) -> Result<PerformanceMetrics> {
+pub fn stream_keys_and_match(
+    pattern: &str,
+    streaming: bool,
+    case_sensitive: bool,
+) -> Result<PerformanceMetrics> {
     // Call the multi-threaded version with 1 thread
     stream_openssh_keys_and_match_mt(pattern, streaming, None, case_sensitive, Some(1))
 }

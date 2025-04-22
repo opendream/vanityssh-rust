@@ -1,12 +1,12 @@
 // src/ssh/mod.rs
 // Created: 2025-04-22 13:35:01 by kengggg
 
-pub mod public_key;
 pub mod private_key;
+pub mod public_key;
 
 // Re-export important functions for easier access
-pub use public_key::encode_ssh_public_key;
 pub use private_key::encode_ssh_private_key;
+pub use public_key::encode_ssh_public_key;
 
 /// The key type string for Ed25519 SSH keys
 pub const ED25519_KEY_TYPE: &str = "ssh-ed25519";

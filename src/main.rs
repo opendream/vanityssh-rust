@@ -1,13 +1,13 @@
 // src/main.rs
-use std::env;
-use ed25519_vanity_rust::{stream_openssh_keys_and_match_mt, error::Result};
+use ed25519_vanity_rust::{error::Result, stream_openssh_keys_and_match_mt};
 use num_cpus;
+use std::env;
 
 mod config;
 mod validation;
 
 use config::Config;
-use validation::{validate_pattern, validate_threads, display_thread_info};
+use validation::{display_thread_info, validate_pattern, validate_threads};
 
 /// Entry point for the Ed25519 vanity key generation application
 ///
@@ -47,7 +47,7 @@ fn main() -> Result<()> {
             println!("----------------------------------------");
             println!("{}", metrics.to_string());
             Ok(())
-        },
+        }
         Err(e) => {
             eprintln!("\nError during key generation: {}", e);
             Err(e)

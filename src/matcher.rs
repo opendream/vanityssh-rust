@@ -1,9 +1,9 @@
 // src/matcher.rs
 // Updated: 2025-04-22 14:15:00 by kengggg
 
-use regex::Regex;
 use crate::error::{Result, VanityError};
 use crate::ssh::public_key::extract_ssh_key_data;
+use regex::Regex;
 
 /// Checks if a string matches a regex pattern.
 ///

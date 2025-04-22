@@ -3,13 +3,14 @@
 // Removed match_full parameter from tests
 
 use ed25519_vanity_rust::{keygen, matcher};
-use std::path::Path;
 use std::fs;
+use std::path::Path;
 
 #[test]
 fn test_openssh_key_format() {
     // Generate an OpenSSH key pair
-    let (public_key, private_key) = keygen::generate_openssh_key_pair(Some("test@example.com")).unwrap();
+    let (public_key, private_key) =
+        keygen::generate_openssh_key_pair(Some("test@example.com")).unwrap();
 
     // Verify public key format
     assert!(public_key.starts_with("ssh-ed25519 "));
@@ -36,8 +37,10 @@ fn test_ssh_key_matching() {
 
     // Test that case-sensitive matching works properly with an exact pattern
     let exact_prefix = &base64_part[0..5]; // Get exact prefix for case-sensitive match
-    assert!(matcher::ssh_key_matches_pattern(&public_key, exact_prefix, true).unwrap(),
-           "Case-sensitive matching should work with exact case");
+    assert!(
+        matcher::ssh_key_matches_pattern(&public_key, exact_prefix, true).unwrap(),
+        "Case-sensitive matching should work with exact case"
+    );
 
     // Test that case-sensitive matching fails with wrong case
     // This ensures that case sensitivity is working as expected
@@ -47,8 +50,10 @@ fn test_ssh_key_matching() {
         exact_prefix.to_uppercase()
     };
 
-    assert!(!matcher::ssh_key_matches_pattern(&public_key, &wrong_case, true).unwrap(),
-           "Case-sensitive matching should fail with wrong case");
+    assert!(
+        !matcher::ssh_key_matches_pattern(&public_key, &wrong_case, true).unwrap(),
+        "Case-sensitive matching should fail with wrong case"
+    );
 }
 
 #[test]

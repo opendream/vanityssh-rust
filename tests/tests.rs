@@ -1,7 +1,7 @@
 // tests/tests.rs
 // Updated: 2025-04-22 14:12:15 by kengggg
 
-use ed25519_vanity_rust::{keygen, matcher, PerformanceMetrics, stream_keys_and_match};
+use ed25519_vanity_rust::{keygen, matcher, stream_keys_and_match, PerformanceMetrics};
 use std::time::Duration;
 
 #[test]
@@ -29,19 +29,28 @@ fn test_matches_pattern_valid() {
     let result = matcher::matches_pattern(hex_key, "AABBCC", false);
 
     assert!(result.is_ok(), "Should return Ok result");
-    assert!(result.unwrap(), "Should match with case-insensitive pattern 'AABBCC'");
+    assert!(
+        result.unwrap(),
+        "Should match with case-insensitive pattern 'AABBCC'"
+    );
 
     // Test case-sensitive matching
     let result = matcher::matches_pattern(hex_key, "AABBCC", true);
 
     assert!(result.is_ok(), "Should return Ok result");
-    assert!(!result.unwrap(), "Should not match with case-sensitive pattern 'AABBCC'");
+    assert!(
+        !result.unwrap(),
+        "Should not match with case-sensitive pattern 'AABBCC'"
+    );
 
     // Test case-sensitive matching with correct case
     let result = matcher::matches_pattern(hex_key, "aabbcc", true);
 
     assert!(result.is_ok(), "Should return Ok result");
-    assert!(result.unwrap(), "Should match with case-sensitive pattern 'aabbcc'");
+    assert!(
+        result.unwrap(),
+        "Should match with case-sensitive pattern 'aabbcc'"
+    );
 
     // Test with a pattern that shouldn't match
     let result = matcher::matches_pattern(hex_key, "xyz", false);

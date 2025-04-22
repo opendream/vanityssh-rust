@@ -1,14 +1,14 @@
 // tests/thread_pool_tests.rs
 // Created: 2025-04-22 14:30:00 by kengggg
 
-use ed25519_vanity_rust::thread_pool::{ThreadPoolConfig, run_thread_pool};
+use ed25519_vanity_rust::thread_pool::{run_thread_pool, ThreadPoolConfig};
 use std::time::Duration;
 
 #[test]
 fn test_thread_pool_basic() {
     // Create a thread pool with 2 threads
     let config = ThreadPoolConfig {
-        pattern: ".*".to_string(),  // Match anything
+        pattern: ".*".to_string(), // Match anything
         thread_count: 2,
         case_sensitive: false,
         streaming: false,
@@ -25,17 +25,17 @@ fn test_thread_pool_basic() {
     assert!(!key_match.public_key.is_empty());
     assert!(!key_match.private_key.is_empty());
     assert!(key_match.attempts > 0);
-    assert!(key_match.thread_id < 2);  // Should be thread 0 or 1
+    assert!(key_match.thread_id < 2); // Should be thread 0 or 1
 }
 
 #[test]
 fn test_thread_pool_streaming() {
     // Create a thread pool with 2 threads in streaming mode
     let config = ThreadPoolConfig {
-        pattern: ".*".to_string(),  // Match anything
+        pattern: ".*".to_string(), // Match anything
         thread_count: 2,
         case_sensitive: false,
-        streaming: true,  // Streaming mode
+        streaming: true, // Streaming mode
         comment: None,
     };
 

@@ -17,7 +17,7 @@ use std::process;
 /// * `pattern` - The regex pattern to validate
 pub fn validate_pattern(pattern: &str) {
     match Regex::new(pattern) {
-        Ok(_) => {}, // Pattern is valid, continue
+        Ok(_) => {} // Pattern is valid, continue
         Err(e) => {
             eprintln!("Error: Invalid regex pattern: {}", e);
             process::exit(1);

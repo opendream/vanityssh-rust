@@ -1,10 +1,10 @@
 // src/ssh/public_key.rs
 // Created: 2025-04-22 13:35:37 by kengggg
 
+use super::ED25519_KEY_TYPE;
+use crate::error::{Result, VanityError};
 use base64::{engine::general_purpose, Engine};
 use byteorder::{BigEndian, WriteBytesExt};
-use crate::error::{Result, VanityError};
-use super::ED25519_KEY_TYPE;
 
 /// Encodes an Ed25519 public key in OpenSSH format.
 /// Returns a string in the format "ssh-ed25519 BASE64ENCODED_KEY [comment]"
@@ -36,12 +36,17 @@ pub fn extract_ssh_key_data(ssh_key: &str) -> Result<String> {
     let parts: Vec<&str> = ssh_key.split_whitespace().collect();
 
     if parts.len() < 2 {
-        return Err(VanityError::InvalidFormat("Invalid SSH public key format".into()));
+        return Err(VanityError::InvalidFormat(
+            "Invalid SSH public key format".into(),
+        ));
     }
 
     // Ensure key type is correct
     if parts[0] != ED25519_KEY_TYPE {
-        return Err(VanityError::InvalidFormat(format!("Expected key type {}, got {}", ED25519_KEY_TYPE, parts[0])));
+        return Err(VanityError::InvalidFormat(format!(
+            "Expected key type {}, got {}",
+            ED25519_KEY_TYPE, parts[0]
+        )));
     }
 
     // Return just the base64 encoded part
@@ -57,7 +62,8 @@ fn write_length_prefixed_string(buffer: &mut Vec<u8>, s: &str) -> Result<()> {
 /// Helper function to write a length-prefixed byte array to a Vec<u8>
 fn write_length_prefixed_bytes(buffer: &mut Vec<u8>, bytes: &[u8]) -> Result<()> {
     // Write the 4-byte length prefix in big-endian format
-    buffer.write_u32::<BigEndian>(bytes.len() as u32)
+    buffer
+        .write_u32::<BigEndian>(bytes.len() as u32)
         .map_err(|e| VanityError::EncodingError(e.to_string()))?;
 
     // Write the actual bytes

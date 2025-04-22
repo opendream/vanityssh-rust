@@ -1,10 +1,10 @@
 // src/ssh/private_key.rs
 // Created: 2025-04-22 13:36:18 by kengggg
 
+use super::{DEFAULT_COMMENT, ED25519_KEY_TYPE, OPENSSH_MAGIC_BYTES};
+use crate::error::{Result, VanityError};
 use base64::{engine::general_purpose, Engine};
 use byteorder::{BigEndian, WriteBytesExt};
-use crate::error::{Result, VanityError};
-use super::{ED25519_KEY_TYPE, OPENSSH_MAGIC_BYTES, DEFAULT_COMMENT};
 
 /// Encodes an Ed25519 keypair in OpenSSH private key format.
 /// Returns a string in PEM-like format with BEGIN/END markers.
@@ -40,9 +40,11 @@ pub fn encode_ssh_private_key(public_key: &[u8], private_key: &[u8]) -> Result<S
     // 7.1 Write random 32-bit check integer (repeated twice)
     // Using a fixed value for determinism, but could use random
     let check_int: u32 = 0x12345678;
-    private_blob.write_u32::<BigEndian>(check_int)
+    private_blob
+        .write_u32::<BigEndian>(check_int)
         .map_err(|e| VanityError::EncodingError(e.to_string()))?;
-    private_blob.write_u32::<BigEndian>(check_int)
+    private_blob
+        .write_u32::<BigEndian>(check_int)
         .map_err(|e| VanityError::EncodingError(e.to_string()))?;
 
     // 7.2 Write key type
@@ -78,7 +80,10 @@ pub fn encode_ssh_private_key(public_key: &[u8], private_key: &[u8]) -> Result<S
     let private_key_pem = format!(
         "-----BEGIN OPENSSH PRIVATE KEY-----\n{}\n-----END OPENSSH PRIVATE KEY-----",
         // Wrap base64 output at 70 chars per line
-        encoded.chars().collect::<Vec<_>>().chunks(70)
+        encoded
+            .chars()
+            .collect::<Vec<_>>()
+            .chunks(70)
             .map(|c| c.iter().collect::<String>())
             .collect::<Vec<_>>()
             .join("\n")
@@ -96,7 +101,8 @@ fn write_length_prefixed_string(buffer: &mut Vec<u8>, s: &str) -> Result<()> {
 /// Helper function to write a length-prefixed byte array to a Vec<u8>
 fn write_length_prefixed_bytes(buffer: &mut Vec<u8>, bytes: &[u8]) -> Result<()> {
     // Write the 4-byte length prefix in big-endian format
-    buffer.write_u32::<BigEndian>(bytes.len() as u32)
+    buffer
+        .write_u32::<BigEndian>(bytes.len() as u32)
         .map_err(|e| VanityError::EncodingError(e.to_string()))?;
 
     // Write the actual bytes

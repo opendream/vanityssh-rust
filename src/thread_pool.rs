@@ -1,12 +1,15 @@
 // src/thread_pool.rs
 // Updated: 2025-04-22 14:32:00 by kengggg
 
-use std::sync::{Arc, atomic::{AtomicBool, AtomicU64, Ordering}};
-use std::thread;
-use crossbeam_channel::{bounded, Receiver}; // Removed unused Sender import
 use crate::error::Result;
 use crate::keygen;
 use crate::matcher;
+use crossbeam_channel::{bounded, Receiver}; // Removed unused Sender import
+use std::sync::{
+    atomic::{AtomicBool, AtomicU64, Ordering},
+    Arc,
+};
+use std::thread;
 
 /// Represents a match found by a worker thread
 pub struct KeyMatch {
@@ -67,7 +70,11 @@ pub fn run_thread_pool(config: ThreadPoolConfig) -> Result<Receiver<KeyMatch>> {
                     None => keygen::generate_openssh_key_pair(None),
                 } {
                     // Check if it matches the pattern
-                    match matcher::ssh_key_matches_pattern(&public_key, &thread_pattern, case_sensitive) {
+                    match matcher::ssh_key_matches_pattern(
+                        &public_key,
+                        &thread_pattern,
+                        case_sensitive,
+                    ) {
                         Ok(true) => {
                             // Found a match!
                             let key_match = KeyMatch {
@@ -88,10 +95,10 @@ pub fn run_thread_pool(config: ThreadPoolConfig) -> Result<Receiver<KeyMatch>> {
                                 thread_terminate.store(true, Ordering::Relaxed);
                                 break;
                             }
-                        },
+                        }
                         Ok(false) => {
                             // No match, continue
-                        },
+                        }
                         Err(_) => {
                             // Error matching, just continue
                         }

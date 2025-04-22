@@ -30,11 +30,11 @@ impl<'a> Config<'a> {
                 "--streaming" => {
                     streaming = true;
                     i += 1;
-                },
+                }
                 "--case-sensitive" => {
                     case_sensitive = true;
                     i += 1;
-                },
+                }
                 "--comment" => {
                     if i + 1 < args.len() {
                         comment = Some(args[i + 1].as_str());
@@ -44,14 +44,14 @@ impl<'a> Config<'a> {
                         print_usage(&args[0]);
                         process::exit(1);
                     }
-                },
+                }
                 "--threads" => {
                     if i + 1 < args.len() {
                         match args[i + 1].parse::<usize>() {
                             Ok(n) if n > 0 => {
                                 threads = Some(n);
                                 i += 2;
-                            },
+                            }
                             _ => {
                                 eprintln!("Error: --threads requires a positive integer");
                                 print_usage(&args[0]);
@@ -63,16 +63,16 @@ impl<'a> Config<'a> {
                         print_usage(&args[0]);
                         process::exit(1);
                     }
-                },
+                }
                 "--help" => {
                     print_usage(&args[0]);
                     process::exit(0);
-                },
+                }
                 arg if arg.starts_with("--") => {
                     eprintln!("Error: Unknown option: {}", arg);
                     print_usage(&args[0]);
                     process::exit(1);
-                },
+                }
                 _ => {
                     if pattern.is_none() {
                         pattern = Some(args[i].as_str());
@@ -111,7 +111,9 @@ pub fn print_usage(program_name: &str) {
     eprintln!("  pattern         : Regex pattern to match against the generated keys");
     eprintln!("  --streaming     : Continue generating keys after a match is found");
     eprintln!("  --comment       : Add a comment to the SSH public key");
-    eprintln!("  --case-sensitive: Make pattern matching case-sensitive (default is case-insensitive)");
+    eprintln!(
+        "  --case-sensitive: Make pattern matching case-sensitive (default is case-insensitive)"
+    );
     eprintln!("  --threads <N>   : Number of threads to use (default: number of CPU cores)");
     eprintln!("  --help          : Display this help message");
 }

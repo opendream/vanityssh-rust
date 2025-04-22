@@ -30,7 +30,7 @@ fn test_cli_with_simple_pattern() {
 fn test_cli_with_invalid_regex() {
     let mut cmd = Command::cargo_bin("ed25519-vanity-rust").unwrap();
 
-    cmd.arg("[")  // Invalid regex pattern (unclosed character class)
+    cmd.arg("[") // Invalid regex pattern (unclosed character class)
         .timeout(Duration::from_secs(5))
         .assert()
         .failure()
@@ -73,16 +73,19 @@ fn test_cli_with_streaming_option() {
 
     // We need a pattern that will match quickly and frequently
     let output = cmd
-        .arg(".*")  // Match anything
+        .arg(".*") // Match anything
         .arg("--streaming")
-        .timeout(Duration::from_secs(2))  // Short timeout - process will be killed
+        .timeout(Duration::from_secs(2)) // Short timeout - process will be killed
         .output()
         .expect("Failed to execute command");
 
     // In streaming mode, we expect the process to be killed by timeout
     // So we just check if the output contains a match before being killed
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("Match found"), "Should find at least one match before timeout");
+    assert!(
+        stdout.contains("Match found"),
+        "Should find at least one match before timeout"
+    );
 }
 
 // Test for combination of options
@@ -111,7 +114,7 @@ fn test_cli_option_order_independence() {
     cmd.arg("--comment")
         .arg("test@example.com")
         .arg("--case-sensitive")
-        .arg(".*")  // Pattern at the end
+        .arg(".*") // Pattern at the end
         .timeout(Duration::from_secs(10))
         .assert()
         .success()
@@ -137,7 +140,7 @@ fn test_cli_with_threads_option() {
 
     cmd.arg(".*")
         .arg("--threads")
-        .arg("2")  // Use 2 threads explicitly
+        .arg("2") // Use 2 threads explicitly
         .timeout(Duration::from_secs(10))
         .assert()
         .success()

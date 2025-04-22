@@ -1,10 +1,10 @@
 // src/keygen.rs
 // Updated: 2025-04-22 13:38:55 by kengggg
 
+use crate::error::Result;
+use crate::ssh::{private_key, public_key};
 use ed25519_dalek::Keypair;
 use rand::rngs::OsRng;
-use crate::error::Result;
-use crate::ssh::{public_key, private_key};
 
 /// Generates an ed25519 key pair and returns the public key and private key as hex strings.
 pub fn generate_key_pair() -> Result<(String, String)> {
