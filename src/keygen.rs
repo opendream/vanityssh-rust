@@ -1,11 +1,11 @@
 // src/keygen.rs
-// Updated: 2025-04-22 12:18:45 by kengggg
+// Updated: 2025-04-22 13:06:34 by kengggg
 
 use ed25519_dalek::Keypair;
 use rand::rngs::OsRng;
-use crate::error::Result; // Removed VanityError since it's not used
+use crate::error::Result;
 
-/// Generates an ed25519 key pair and returns the public key as a hex string.
+/// Generates an ed25519 key pair and returns the public key and private key as hex strings.
 pub fn generate_key_pair() -> Result<(String, String)> {
     // Use the OS's random number generator
     let mut csprng = OsRng {};
@@ -21,3 +21,5 @@ pub fn generate_key_pair() -> Result<(String, String)> {
 
     Ok((public_key, private_key))
 }
+
+// We'll add OpenSSH support in the future
