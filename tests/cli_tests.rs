@@ -11,7 +11,7 @@ fn test_cli_no_args() {
 
     cmd.assert()
         .failure()
-        .stderr(predicate::str::contains("Usage:"));
+        .stdout(predicate::str::contains("Usage:"));
 }
 
 #[test]
