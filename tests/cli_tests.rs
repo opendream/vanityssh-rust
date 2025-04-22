@@ -4,7 +4,6 @@
 use assert_cmd::prelude::*;
 use predicates::prelude::*;
 use std::process::Command;
-use std::time::Duration;
 
 #[test]
 fn test_cli_no_args() {
