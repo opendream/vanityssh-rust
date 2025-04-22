@@ -12,10 +12,8 @@ thiserror = "1.0.39"
 indicatif = "0.17.3"
 chrono = "0.4.24"
 base64 = "0.21.0"
-# Add missing dependencies
 byteorder = "1.4.3"
 hex = "0.4.3"
-# Multi-threading dependencies
 num_cpus = "1.16.0"
 crossbeam = "0.8.2"
 crossbeam-channel = "0.5.8"
