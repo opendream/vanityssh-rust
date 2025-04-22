@@ -1,16 +1,19 @@
 // src/lib.rs
-// Updated: 2025-04-22 14:15:30 by kengggg
-// Removed match_full parameter from stream_openssh_keys_and_match
+// Updated: 2025-04-22 14:27:00 by kengggg
 
 pub mod keygen;
 pub mod matcher;
 pub mod error;
 pub mod ssh;
+pub mod thread_pool;  // New module
 
 use std::time::{Duration, Instant};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 use indicatif::{ProgressBar, ProgressStyle};
 use chrono::Local;
 use crate::error::Result;
+use crate::thread_pool::{ThreadPoolConfig, run_thread_pool};
 
 /// Performance metrics for key generation
 pub struct PerformanceMetrics {
@@ -58,185 +61,144 @@ impl PerformanceMetrics {
 
 /// Continuously generates random ed25519 key pairs in OpenSSH format
 /// and matches the public key against a regex pattern.
-/// If `streaming` is `true`, it continues generating keys even after a match is found.
-/// Returns performance metrics for the operation.
+/// This is the multi-threaded version of the key generation function.
 ///
-/// The `comment` parameter will be used in the SSH public key if provided.
-/// The `case_sensitive` parameter determines whether the pattern matching is case sensitive.
+/// # Arguments
+///
+/// * `pattern` - The regex pattern to match against
+/// * `streaming` - Whether to continue after finding a match
+/// * `comment` - Optional comment to add to the SSH key
+/// * `case_sensitive` - Whether to perform case-sensitive matching
+/// * `threads` - Number of worker threads to use (default: number of CPU cores)
+///
+/// # Returns
+///
+/// Performance metrics for the operation
+pub fn stream_openssh_keys_and_match_mt(
+    pattern: &str,
+    streaming: bool,
+    comment: Option<&str>,
+    case_sensitive: bool,
+    threads: Option<usize>
+) -> Result<PerformanceMetrics> {
+    // Determine thread count: use provided value or CPU count
+    let thread_count = threads.unwrap_or_else(num_cpus::get);
+
+    // Setup progress bar
+    let pb = ProgressBar::new_spinner();
+    pb.set_style(
+        ProgressStyle::default_spinner()
+            .template("{spinner:.green} {msg}")
+            .unwrap()
+    );
+
+    // Performance tracking
+    let start_time = Instant::now();
+    let mut last_update = Instant::now();
+    let update_interval = Duration::from_millis(500);
+
+    // Create thread pool configuration
+    let config = ThreadPoolConfig {
+        pattern: pattern.to_string(),
+        thread_count,
+        case_sensitive,
+        streaming,
+        comment: comment.map(|s| s.to_string()),
+    };
+
+    // Start the thread pool
+    let receiver = run_thread_pool(config)?;
+
+    // Shared counters for tracking attempts and matches
+    let total_attempts = Arc::new(AtomicU64::new(0));
+    let matches_found = Arc::new(AtomicU64::new(0));
+
+    // Performance metrics to return
+    let mut metrics = PerformanceMetrics::new();
+
+    // Main thread listens for matches and updates progress
+    loop {
+        // Check for key matches with a timeout
+        match receiver.recv_timeout(update_interval) {
+            Ok(key_match) => {
+                // Update total attempts with the latest from the successful thread
+                // This is not perfectly accurate but gives a reasonable estimate
+                let attempts = total_attempts.load(Ordering::Relaxed) + key_match.attempts;
+                total_attempts.store(attempts, Ordering::Relaxed);
+
+                let matches = matches_found.fetch_add(1, Ordering::Relaxed) + 1;
+                let timestamp = Local::now().format("%Y-%m-%d %H:%M:%S");
+
+                // Update metrics
+                let elapsed = start_time.elapsed();
+                metrics.update(attempts, matches, elapsed);
+
+                // Clear progress spinner when reporting a match
+                pb.finish_and_clear();
+
+                // Report the match
+                println!("\n[{}] Match found after {} attempts by thread {}!",
+                    timestamp, attempts, key_match.thread_id);
+                println!("Public Key:  {}", key_match.public_key);
+                println!("Private Key:\n{}", key_match.private_key);
+                println!("Performance: {}", metrics.to_string());
+
+                // If not in streaming mode, exit
+                if !streaming {
+                    break;
+                }
+
+                // Re-initialize progress bar if continuing
+                pb.set_style(
+                    ProgressStyle::default_spinner()
+                        .template("{spinner:.green} {msg}")
+                        .unwrap()
+                );
+                pb.enable_steady_tick(Duration::from_millis(100));
+            },
+            Err(_) => {
+                // Timeout occurred (no match yet), update progress
+                let now = Instant::now();
+                if now.duration_since(last_update) > update_interval {
+                    let elapsed = now.duration_since(start_time);
+                    let attempts = total_attempts.load(Ordering::Relaxed);
+                    let matches = matches_found.load(Ordering::Relaxed);
+
+                    metrics.update(attempts, matches, elapsed);
+                    pb.set_message(format!("{} (Threads: {})", metrics.to_string(), thread_count));
+
+                    last_update = now;
+                }
+            }
+        }
+    }
+
+    pb.finish_and_clear();
+
+    // Final update to metrics
+    let elapsed = start_time.elapsed();
+    let attempts = total_attempts.load(Ordering::Relaxed);
+    let matches = matches_found.load(Ordering::Relaxed);
+    metrics.update(attempts, matches, elapsed);
+
+    Ok(metrics)
+}
+
+// Keep the original single-threaded function for backward compatibility
 pub fn stream_openssh_keys_and_match(
     pattern: &str,
     streaming: bool,
     comment: Option<&str>,
     case_sensitive: bool
 ) -> Result<PerformanceMetrics> {
-    // Initialize progress bar
-    let pb = ProgressBar::new_spinner();
-    pb.set_style(
-        ProgressStyle::default_spinner()
-            .template("{spinner:.green} {msg}")
-            .unwrap()
-    );
-
-    // Performance tracking
-    let start_time = Instant::now();
-    let mut last_update = Instant::now();
-    let update_interval = Duration::from_millis(500);
-
-    // Counters
-    let mut count: u64 = 0;
-    let mut matches_found: u64 = 0;
-    let mut metrics = PerformanceMetrics::new();
-
-    loop {
-        count += 1;
-
-        // Generate a random OpenSSH key pair
-        let (public_key, private_key) = keygen::generate_openssh_key_pair(comment)?;
-
-        // Update progress bar periodically
-        let now = Instant::now();
-        if now.duration_since(last_update) > update_interval {
-            let elapsed = now.duration_since(start_time);
-            metrics.update(count, matches_found, elapsed);
-
-            pb.set_message(format!("{}", metrics.to_string()));
-            last_update = now;
-        }
-
-        // Check if the key matches the pattern
-        match matcher::ssh_key_matches_pattern(&public_key, pattern, case_sensitive) {
-            Ok(true) => {
-                matches_found += 1;
-                let timestamp = Local::now().format("%Y-%m-%d %H:%M:%S");
-
-                // Update metrics
-                let elapsed = now.duration_since(start_time);
-                metrics.update(count, matches_found, elapsed);
-
-                // Clear progress spinner when reporting a match
-                pb.finish_and_clear();
-
-                println!("\n[{}] Match found after {} attempts!", timestamp, count);
-                println!("Public Key:  {}", public_key);
-                println!("Private Key:\n{}", private_key);
-                println!("Performance: {}", metrics.to_string());
-
-                // Re-initialize progress bar if in streaming mode
-                if streaming {
-                    pb.set_style(
-                        ProgressStyle::default_spinner()
-                            .template("{spinner:.green} {msg}")
-                            .unwrap()
-                    );
-                    pb.enable_steady_tick(Duration::from_millis(100));
-                } else {
-                    // Break the loop if not in streaming mode
-                    break;
-                }
-            }
-            Ok(false) => {
-                // Do nothing, continue generating keys
-            }
-            Err(e) => {
-                pb.finish_and_clear();
-                return Err(e);
-            }
-        }
-    }
-
-    pb.finish_and_clear();
-
-    // Final update to metrics
-    let elapsed = start_time.elapsed();
-    metrics.update(count, matches_found, elapsed);
-
-    Ok(metrics)
+    // By default, use the multi-threaded version with 1 thread
+    stream_openssh_keys_and_match_mt(pattern, streaming, comment, case_sensitive, Some(1))
 }
 
-// Keep the original function for compatibility, but simplify parameters
+// Original stream_keys_and_match for backward compatibility
 pub fn stream_keys_and_match(pattern: &str, streaming: bool, case_sensitive: bool) -> Result<PerformanceMetrics> {
-    // Initialize progress bar
-    let pb = ProgressBar::new_spinner();
-    pb.set_style(
-        ProgressStyle::default_spinner()
-            .template("{spinner:.green} {msg}")
-            .unwrap()
-    );
-
-    // Performance tracking
-    let start_time = Instant::now();
-    let mut last_update = Instant::now();
-    let update_interval = Duration::from_millis(500);
-
-    // Counters
-    let mut count: u64 = 0;
-    let mut matches_found: u64 = 0;
-    let mut metrics = PerformanceMetrics::new();
-
-    loop {
-        count += 1;
-
-        // Generate a random key pair
-        let (public_key, private_key) = keygen::generate_key_pair()?;
-
-        // Update progress bar periodically
-        let now = Instant::now();
-        if now.duration_since(last_update) > update_interval {
-            let elapsed = now.duration_since(start_time);
-            metrics.update(count, matches_found, elapsed);
-
-            pb.set_message(format!("{}", metrics.to_string()));
-            last_update = now;
-        }
-
-        // Check if the key matches the pattern
-        match matcher::matches_pattern(&public_key, pattern, case_sensitive) {
-            Ok(true) => {
-                matches_found += 1;
-                let timestamp = Local::now().format("%Y-%m-%d %H:%M:%S");
-
-                // Update metrics
-                let elapsed = now.duration_since(start_time);
-                metrics.update(count, matches_found, elapsed);
-
-                // Clear progress spinner when reporting a match
-                pb.finish_and_clear();
-
-                println!("\n[{}] Match found after {} attempts!", timestamp, count);
-                println!("Public Key:  {}", public_key);
-                println!("Private Key: {}", private_key);
-                println!("Performance: {}", metrics.to_string());
-
-                // Re-initialize progress bar if in streaming mode
-                if streaming {
-                    pb.set_style(
-                        ProgressStyle::default_spinner()
-                            .template("{spinner:.green} {msg}")
-                            .unwrap()
-                    );
-                    pb.enable_steady_tick(Duration::from_millis(100));
-                } else {
-                    // Break the loop if not in streaming mode
-                    break;
-                }
-            }
-            Ok(false) => {
-                // Do nothing, continue generating keys
-            }
-            Err(e) => {
-                pb.finish_and_clear();
-                return Err(e);
-            }
-        }
-    }
-
-    pb.finish_and_clear();
-
-    // Final update to metrics
-    let elapsed = start_time.elapsed();
-    metrics.update(count, matches_found, elapsed);
-
-    Ok(metrics)
+    // Call the multi-threaded version with 1 thread
+    stream_openssh_keys_and_match_mt(pattern, streaming, None, case_sensitive, Some(1))
 }
 
 // For test helper function

@@ -34,7 +34,8 @@ fn test_cli_with_invalid_regex() {
         .timeout(Duration::from_secs(5))
         .assert()
         .failure()
-        .stderr(predicate::str::contains("InvalidRegex"));
+        // Check for specific error message about invalid regex
+        .stderr(predicate::str::contains("Invalid regex"));
 }
 
 #[test]
@@ -101,7 +102,7 @@ fn test_cli_with_option_combinations() {
         .stdout(predicate::str::contains("test@example.com"));
 }
 
-// FIXED TEST: Test option order independence with proper kill handling
+// Test option order independence with proper kill handling
 #[test]
 fn test_cli_option_order_independence() {
     let mut cmd = Command::cargo_bin("ed25519-vanity-rust").unwrap();
@@ -118,7 +119,7 @@ fn test_cli_option_order_independence() {
         .stdout(predicate::str::contains("test@example.com"));
 }
 
-// NEW TEST: Test the help option
+// Test the help option
 #[test]
 fn test_cli_help_option() {
     let mut cmd = Command::cargo_bin("ed25519-vanity-rust").unwrap();
@@ -128,4 +129,37 @@ fn test_cli_help_option() {
         .success()
         .stderr(predicate::str::contains("Usage:"))
         .stderr(predicate::str::contains("pattern"));
+}
+
+#[test]
+fn test_cli_with_threads_option() {
+    let mut cmd = Command::cargo_bin("ed25519-vanity-rust").unwrap();
+
+    cmd.arg(".*")
+        .arg("--threads")
+        .arg("2")  // Use 2 threads explicitly
+        .timeout(Duration::from_secs(10))
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Using 2 threads"))
+        .stdout(predicate::str::contains("Match found"));
+}
+
+// Test multiple options including threads
+#[test]
+fn test_cli_with_threads_and_other_options() {
+    let mut cmd = Command::cargo_bin("ed25519-vanity-rust").unwrap();
+
+    cmd.arg(".*")
+        .arg("--threads")
+        .arg("2")
+        .arg("--comment")
+        .arg("test@example.com")
+        .arg("--case-sensitive")
+        .timeout(Duration::from_secs(10))
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Using 2 threads"))
+        .stdout(predicate::str::contains("Match found"))
+        .stdout(predicate::str::contains("test@example.com"));
 }
