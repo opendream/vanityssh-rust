@@ -5,7 +5,7 @@ use vanityssh_rust::{error::Result, stream_openssh_keys_and_match_mt};
 mod config;
 mod validation;
 
-use config::Config;
+use config::{print_usage, Config};
 use validation::{display_thread_info, validate_pattern, validate_threads};
 
 /// Entry point for the VanitySSH key generation application
@@ -22,6 +22,13 @@ use validation::{display_thread_info, validate_pattern, validate_threads};
 fn main() -> Result<()> {
     // Parse arguments
     let args: Vec<String> = env::args().collect();
+
+    // Display help if requested directly
+    if args.len() > 1 && args[1] == "--help" {
+        Config::display_help();
+        std::process::exit(0);
+    }
+
     let config = Config::parse_args(&args);
 
     // Validate inputs

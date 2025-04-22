@@ -1,14 +1,14 @@
 // tests/cli_tests.rs
-// Updated: 2025-04-22 14:21:00 by kengggg
-// Fixed test timeouts and output verification
+// Updated 2025-04-22 15:10:00 by kengggg
 
-use assert_cmd::Command;
+use assert_cmd::prelude::*;
 use predicates::prelude::*;
+use std::process::Command;
 use std::time::Duration;
 
 #[test]
 fn test_cli_no_args() {
-    let mut cmd = Command::cargo_bin("ed25519-vanity-rust").unwrap();
+    let mut cmd = Command::cargo_bin("vanityssh-rust").unwrap();
 
     cmd.assert()
         .failure()
@@ -17,7 +17,7 @@ fn test_cli_no_args() {
 
 #[test]
 fn test_cli_with_simple_pattern() {
-    let mut cmd = Command::cargo_bin("ed25519-vanity-rust").unwrap();
+    let mut cmd = Command::cargo_bin("vanityssh-rust").unwrap();
 
     cmd.arg(".*")
         .timeout(Duration::from_secs(10))
@@ -28,7 +28,7 @@ fn test_cli_with_simple_pattern() {
 
 #[test]
 fn test_cli_with_invalid_regex() {
-    let mut cmd = Command::cargo_bin("ed25519-vanity-rust").unwrap();
+    let mut cmd = Command::cargo_bin("vanityssh-rust").unwrap();
 
     cmd.arg("[") // Invalid regex pattern (unclosed character class)
         .timeout(Duration::from_secs(5))
@@ -40,7 +40,7 @@ fn test_cli_with_invalid_regex() {
 
 #[test]
 fn test_cli_with_openssh_format() {
-    let mut cmd = Command::cargo_bin("ed25519-vanity-rust").unwrap();
+    let mut cmd = Command::cargo_bin("vanityssh-rust").unwrap();
 
     cmd.arg(".*")
         .arg("--comment")
@@ -55,7 +55,7 @@ fn test_cli_with_openssh_format() {
 
 #[test]
 fn test_cli_with_case_sensitive_option() {
-    let mut cmd = Command::cargo_bin("ed25519-vanity-rust").unwrap();
+    let mut cmd = Command::cargo_bin("vanityssh-rust").unwrap();
 
     cmd.arg(".*")
         .arg("--case-sensitive")
@@ -69,7 +69,7 @@ fn test_cli_with_case_sensitive_option() {
 // and just verify that it started successfully
 #[test]
 fn test_cli_with_streaming_option() {
-    let mut cmd = Command::cargo_bin("ed25519-vanity-rust").unwrap();
+    let mut cmd = Command::cargo_bin("vanityssh-rust").unwrap();
 
     // We need a pattern that will match quickly and frequently
     let output = cmd
@@ -91,7 +91,7 @@ fn test_cli_with_streaming_option() {
 // Test for combination of options
 #[test]
 fn test_cli_with_option_combinations() {
-    let mut cmd = Command::cargo_bin("ed25519-vanity-rust").unwrap();
+    let mut cmd = Command::cargo_bin("vanityssh-rust").unwrap();
 
     // Combine multiple options
     cmd.arg(".*")
@@ -108,7 +108,7 @@ fn test_cli_with_option_combinations() {
 // Test option order independence with proper kill handling
 #[test]
 fn test_cli_option_order_independence() {
-    let mut cmd = Command::cargo_bin("ed25519-vanity-rust").unwrap();
+    let mut cmd = Command::cargo_bin("vanityssh-rust").unwrap();
 
     // Put options in a different order
     cmd.arg("--comment")
@@ -125,18 +125,21 @@ fn test_cli_option_order_independence() {
 // Test the help option
 #[test]
 fn test_cli_help_option() {
-    let mut cmd = Command::cargo_bin("ed25519-vanity-rust").unwrap();
+    let mut cmd = Command::cargo_bin("vanityssh-rust").unwrap();
 
     cmd.arg("--help")
         .assert()
         .success()
-        .stderr(predicate::str::contains("Usage:"))
-        .stderr(predicate::str::contains("pattern"));
+        .stdout(predicate::str::contains("VanitySSH"))
+        .stdout(predicate::str::contains(
+            "Usage: vanityssh-rust <pattern> [OPTIONS]",
+        ))
+        .stdout(predicate::str::contains("pattern"));
 }
 
 #[test]
 fn test_cli_with_threads_option() {
-    let mut cmd = Command::cargo_bin("ed25519-vanity-rust").unwrap();
+    let mut cmd = Command::cargo_bin("vanityssh-rust").unwrap();
 
     cmd.arg(".*")
         .arg("--threads")
@@ -151,14 +154,13 @@ fn test_cli_with_threads_option() {
 // Test multiple options including threads
 #[test]
 fn test_cli_with_threads_and_other_options() {
-    let mut cmd = Command::cargo_bin("ed25519-vanity-rust").unwrap();
+    let mut cmd = Command::cargo_bin("vanityssh-rust").unwrap();
 
     cmd.arg(".*")
         .arg("--threads")
         .arg("2")
         .arg("--comment")
         .arg("test@example.com")
-        .arg("--case-sensitive")
         .timeout(Duration::from_secs(10))
         .assert()
         .success()

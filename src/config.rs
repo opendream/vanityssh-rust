@@ -14,7 +14,7 @@ impl<'a> Config<'a> {
     /// Parse command-line arguments into a Config struct
     pub fn parse_args(args: &'a [String]) -> Self {
         if args.len() < 2 {
-            print_usage(&args[0]);
+            Self::display_help();
             process::exit(1);
         }
 
@@ -41,7 +41,7 @@ impl<'a> Config<'a> {
                         i += 2;
                     } else {
                         eprintln!("Error: --comment requires a value");
-                        print_usage(&args[0]);
+                        Self::display_help();
                         process::exit(1);
                     }
                 }
@@ -54,23 +54,23 @@ impl<'a> Config<'a> {
                             }
                             _ => {
                                 eprintln!("Error: --threads requires a positive integer");
-                                print_usage(&args[0]);
+                                Self::display_help();
                                 process::exit(1);
                             }
                         }
                     } else {
                         eprintln!("Error: --threads requires a value");
-                        print_usage(&args[0]);
+                        Self::display_help();
                         process::exit(1);
                     }
                 }
                 "--help" => {
-                    print_usage(&args[0]);
+                    Self::display_help();
                     process::exit(0);
                 }
                 arg if arg.starts_with("--") => {
                     eprintln!("Error: Unknown option: {}", arg);
-                    print_usage(&args[0]);
+                    Self::display_help();
                     process::exit(1);
                 }
                 _ => {
@@ -78,7 +78,7 @@ impl<'a> Config<'a> {
                         pattern = Some(args[i].as_str());
                     } else {
                         eprintln!("Error: Multiple patterns specified");
-                        print_usage(&args[0]);
+                        Self::display_help();
                         process::exit(1);
                     }
                     i += 1;
@@ -90,7 +90,7 @@ impl<'a> Config<'a> {
             Some(p) => p,
             None => {
                 eprintln!("Error: No pattern specified");
-                print_usage(&args[0]);
+                Self::display_help();
                 process::exit(1);
             }
         };
@@ -118,7 +118,7 @@ impl<'a> Config<'a> {
     }
 }
 
-/// Print usage instructions
+/// Print usage instructions - kept for backward compatibility with tests
 pub fn print_usage(program_name: &str) {
     eprintln!("Usage: {} <pattern> [OPTIONS]", program_name);
     eprintln!("  pattern         : Regex pattern to match against the generated keys");
