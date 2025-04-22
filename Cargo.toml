@@ -2,8 +2,6 @@
 name = "ed25519-vanity-rust"
 version = "0.1.0"
 edition = "2021"
-authors = ["kengggg"]
-description = "A tool to generate vanity Ed25519 keys"
 
 [dependencies]
 ed25519-dalek = "1.0.0"
@@ -13,6 +11,8 @@ hex = "0.4.0"
 indicatif = "0.17.3"
 chrono = "0.4.23"
 thiserror = "1.0.37"
+base64 = "0.21.0"
+byteorder = "1.4.3"
 
 [dev-dependencies]
 assert_cmd = "2.0.8"

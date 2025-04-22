@@ -1,35 +1,38 @@
 // src/main.rs
-// Updated: 2025-04-22 12:10:09 by kengggg
+// Updated: 2025-04-22 13:40:48 by kengggg
 
-use ed25519_vanity_rust::stream_keys_and_match;
 use std::env;
 use std::process;
+use ed25519_vanity_rust::{stream_openssh_keys_and_match, error::Result};
 
-fn main() {
-    // Collect command-line arguments
+fn main() -> Result<()> {
+    // Parse command-line arguments
     let args: Vec<String> = env::args().collect();
 
     if args.len() < 2 {
-        eprintln!("Usage: {} <regex-pattern> [--streaming]", args[0]);
+        eprintln!("Usage: {} <pattern> [--streaming] [--comment <comment>] [--match-full]", args[0]);
+        eprintln!("  pattern     : Regex pattern to match against the generated keys");
+        eprintln!("  --streaming : Continue generating keys after a match is found");
+        eprintln!("  --comment   : Add a comment to the SSH public key");
+        eprintln!("  --match-full: Match against the full SSH key (default is to match only the base64 part)");
         process::exit(1);
     }
 
-    // Extract the regex pattern
+    // Get the pattern from the first argument
     let pattern = &args[1];
 
-    // Check if streaming mode is enabled
-    let streaming = args.get(2).map_or(false, |arg| arg == "--streaming");
+    // Check for streaming option
+    let streaming = args.iter().any(|arg| arg == "--streaming");
 
-    // Start the key generation and matching process
-    match stream_keys_and_match(pattern, streaming) {
-        Ok(metrics) => {
-            println!("\nFinal performance metrics:");
-            println!("{}", metrics.to_string());
-            process::exit(0);
-        }
-        Err(e) => {
-            eprintln!("Error: {}", e);
-            process::exit(1);
-        }
-    }
+    // Check for match-full option
+    let match_full = args.iter().any(|arg| arg == "--match-full");
+
+    // Get comment if specified
+    let comment = args.iter().position(|arg| arg == "--comment")
+        .and_then(|pos| if pos + 1 < args.len() { Some(args[pos + 1].as_str()) } else { None });
+
+    // Generate keys and match against pattern
+    let _ = stream_openssh_keys_and_match(pattern, streaming, comment, match_full)?;
+
+    Ok(())
 }
