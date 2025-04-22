@@ -16,8 +16,8 @@ fn test_generate_key_pair() {
     assert_eq!(private_key.len(), 64); // 32 bytes = 64 hex chars
 
     // Check that the keys contain only valid hex characters
-    assert!(public_key.chars().all(|c| c.is_digit(16)));
-    assert!(private_key.chars().all(|c| c.is_digit(16)));
+    assert!(public_key.chars().all(|c| c.is_ascii_hexdigit()));
+    assert!(private_key.chars().all(|c| c.is_ascii_hexdigit()));
 }
 
 #[test]

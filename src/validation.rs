@@ -6,7 +6,6 @@ use std::process;
 ///
 /// This module centralizes input validation logic to keep the main application
 /// code cleaner and more focused on the primary business logic.
-
 /// Validate the regex pattern and exit on failure
 ///
 /// This function attempts to compile the provided regex pattern and exits

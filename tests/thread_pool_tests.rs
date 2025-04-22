@@ -48,7 +48,7 @@ fn test_thread_pool_streaming() {
 
     // Get up to 3 matches or timeout after 10 seconds
     while matches < 3 && start.elapsed() < Duration::from_secs(10) {
-        if let Ok(_) = receiver.recv_timeout(Duration::from_secs(1)) {
+        if receiver.recv_timeout(Duration::from_secs(1)).is_ok() {
             matches += 1;
         }
     }

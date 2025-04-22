@@ -1,6 +1,5 @@
 // src/main.rs
 use ed25519_vanity_rust::{error::Result, stream_openssh_keys_and_match_mt};
-use num_cpus;
 use std::env;
 
 mod config;
@@ -45,7 +44,7 @@ fn main() -> Result<()> {
             // Format and display performance metrics
             println!("\nKey generation completed successfully!");
             println!("----------------------------------------");
-            println!("{}", metrics.to_string());
+            println!("{}", metrics);
             Ok(())
         }
         Err(e) => {
