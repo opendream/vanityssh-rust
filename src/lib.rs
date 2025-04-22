@@ -155,7 +155,7 @@ pub fn stream_openssh_keys_and_match_mt(
                 println!("Performance: {}", metrics);
 
                 // If not in streaming mode, exit
-                if (!streaming) {
+                if !streaming {
                     break;
                 }
 
