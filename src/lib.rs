@@ -176,11 +176,7 @@ pub fn stream_openssh_keys_and_match_mt(
                     let matches = matches_found.load(Ordering::Relaxed);
 
                     metrics.update(attempts, matches, elapsed);
-                    pb.set_message(format!(
-                        "{} (Threads: {})",
-                        metrics,
-                        thread_count
-                    ));
+                    pb.set_message(format!("{} (Threads: {})", metrics, thread_count));
 
                     last_update = now;
                 }
