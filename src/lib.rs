@@ -93,7 +93,7 @@ pub fn stream_openssh_keys_and_match_mt(
     let thread_count = threads.unwrap_or_else(num_cpus::get);
 
     // Setup progress bar
-    let pb = ProgressBar::new_spinner();
+    let mut pb = ProgressBar::new_spinner();
     pb.set_style(
         ProgressStyle::default_spinner()
             .template("{spinner:.green} {msg}")
@@ -160,13 +160,30 @@ pub fn stream_openssh_keys_and_match_mt(
                         return Ok(metrics);
                     }
 
-                    // Re-initialize progress bar if continuing
+                    // In streaming mode, we need to completely recreate the progress bar
+                    // rather than just reinitializing it
+                    pb = ProgressBar::new_spinner();
                     pb.set_style(
                         ProgressStyle::default_spinner()
                             .template("{spinner:.green} {msg}")
                             .unwrap(),
                     );
                     pb.enable_steady_tick(Duration::from_millis(100));
+
+                    // Reset update timer to ensure immediate refresh
+                    last_update = Instant::now().checked_sub(update_interval * 2).unwrap_or(Instant::now());
+
+                    // Force an immediate update of the progress display with a clear message
+                    // that indicates we're continuing the search
+                    let now = Instant::now();
+                    let elapsed = now.duration_since(start_time);
+                    metrics.update(total_attempts, matches_found, elapsed);
+
+                    // Add a newline before continuing to ensure progress bar appears on its own line
+                    println!("\nContinuing search for more matches...");
+
+                    pb.set_message(format!("Attempts: {} | Matches: {} | Duration: {:.2}s | Speed: {:.2} keys/sec (Threads: {})",
+                        total_attempts, matches_found, elapsed.as_secs_f64(), metrics.keys_per_second, thread_count));
                 } else {
                     // Channel closed, exit
                     break;
