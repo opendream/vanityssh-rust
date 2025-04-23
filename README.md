@@ -2,7 +2,7 @@
 
 [![Build Status](https://github.com/opendream/vanityssh-rust/actions/workflows/ci.yml/badge.svg)](https://github.com/opendream/vanityssh-rust/actions/workflows/ci.yml)
 
-Generate SSH key pairs whose public keys match a user-specified regex pattern. This tool creates Ed25519 SSH keys with OpenSSH-compatible formatting and searches for keys that match custom patterns in their base64-encoded representation.
+Generate SSH key pairs whose public keys match a user-specified regex pattern. This tool creates ed25519 SSH keys with OpenSSH-compatible formatting and searches for keys that match custom patterns in their base64-encoded representation.
 
 ## Features
 - Customizable regex pattern matching for public keys
