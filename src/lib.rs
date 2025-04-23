@@ -1,19 +1,18 @@
 // src/lib.rs
-// Updated: 2025-04-22 14:27:00 by kengggg
+// Updated: 2025-04-22 15:50:00 by kengggg
 
 pub mod error;
 pub mod keygen;
 pub mod matcher;
 pub mod ssh;
-pub mod thread_pool; // New module
+pub mod thread_pool;
 
 use crate::error::Result;
 use crate::thread_pool::{run_thread_pool, ThreadPoolConfig};
 use chrono::Local;
+use crossbeam_channel::select;
 use indicatif::{ProgressBar, ProgressStyle};
 use std::fmt;
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 /// Performance metrics for key generation
@@ -116,70 +115,90 @@ pub fn stream_openssh_keys_and_match_mt(
     };
 
     // Start the thread pool
-    let receiver = run_thread_pool(config)?;
+    let (match_receiver, status_receiver) = run_thread_pool(config)?;
 
-    // Shared counters for tracking attempts and matches
-    let total_attempts = Arc::new(AtomicU64::new(0));
-    let matches_found = Arc::new(AtomicU64::new(0));
+    // Track attempts and matches
+    let mut total_attempts: u64 = 0;
+    let mut matches_found: u64 = 0;
 
     // Performance metrics to return
     let mut metrics = PerformanceMetrics::new();
 
-    // Main thread listens for matches and updates progress
+    // Enable steady spinner tick
+    pb.enable_steady_tick(Duration::from_millis(100));
+
     loop {
-        // Check for key matches with a timeout
-        match receiver.recv_timeout(update_interval) {
-            Ok(key_match) => {
-                // Update total attempts with the latest from the successful thread
-                // This is not perfectly accurate but gives a reasonable estimate
-                let attempts = total_attempts.load(Ordering::Relaxed) + key_match.attempts;
-                total_attempts.store(attempts, Ordering::Relaxed);
+        // Use crossbeam's select! to handle multiple channels
+        select! {
+            // Handle key matches
+            recv(match_receiver) -> msg => {
+                if let Ok(key_match) = msg {
+                    // Update counters with the match information
+                    total_attempts += key_match.attempts;
+                    matches_found += 1;
 
-                let matches = matches_found.fetch_add(1, Ordering::Relaxed) + 1;
-                let timestamp = Local::now().format("%Y-%m-%d %H:%M:%S");
+                    let timestamp = Local::now().format("%Y-%m-%d %H:%M:%S");
+                    let elapsed = start_time.elapsed();
 
-                // Update metrics
-                let elapsed = start_time.elapsed();
-                metrics.update(attempts, matches, elapsed);
+                    // Update metrics
+                    metrics.update(total_attempts, matches_found, elapsed);
 
-                // Clear progress spinner when reporting a match
-                pb.finish_and_clear();
+                    // Clear progress spinner when reporting a match
+                    pb.finish_and_clear();
 
-                // Report the match
-                println!(
-                    "\n[{}] Match found after {} attempts by thread {}!",
-                    timestamp, attempts, key_match.thread_id
-                );
-                println!("Public Key:  {}", key_match.public_key);
-                println!("Private Key:\n{}", key_match.private_key);
-                println!("Performance: {}", metrics);
+                    // Report the match
+                    println!(
+                        "\n[{}] Match found after {} attempts by thread {}!",
+                        timestamp, key_match.attempts, key_match.thread_id
+                    );
+                    println!("Public Key:  {}", key_match.public_key);
+                    println!("Private Key:\n{}", key_match.private_key);
+                    println!("Performance: {}", metrics);
 
-                // If not in streaming mode, exit
-                if !streaming {
+                    // If not in streaming mode, exit
+                    if !streaming {
+                        return Ok(metrics);
+                    }
+
+                    // Re-initialize progress bar if continuing
+                    pb.set_style(
+                        ProgressStyle::default_spinner()
+                            .template("{spinner:.green} {msg}")
+                            .unwrap(),
+                    );
+                    pb.enable_steady_tick(Duration::from_millis(100));
+                } else {
+                    // Channel closed, exit
                     break;
                 }
+            },
 
-                // Re-initialize progress bar if continuing
-                pb.set_style(
-                    ProgressStyle::default_spinner()
-                        .template("{spinner:.green} {msg}")
-                        .unwrap(),
-                );
-                pb.enable_steady_tick(Duration::from_millis(100));
-            }
-            Err(_) => {
-                // Timeout occurred (no match yet), update progress
-                let now = Instant::now();
-                if now.duration_since(last_update) > update_interval {
-                    let elapsed = now.duration_since(start_time);
-                    let attempts = total_attempts.load(Ordering::Relaxed);
-                    let matches = matches_found.load(Ordering::Relaxed);
+            // Handle status updates
+            recv(status_receiver) -> msg => {
+                if let Ok(status) = msg {
+                    // Update attempt counter
+                    total_attempts += status.attempts;
 
-                    metrics.update(attempts, matches, elapsed);
-                    pb.set_message(format!("{} (Threads: {})", metrics, thread_count));
-
-                    last_update = now;
+                    // Refresh display if update interval has passed
+                    let now = Instant::now();
+                    if now.duration_since(last_update) >= update_interval {
+                        let elapsed = now.duration_since(start_time);
+                        metrics.update(total_attempts, matches_found, elapsed);
+                        pb.set_message(format!("Attempts: {} | Matches: {} | Duration: {:.2}s | Speed: {:.2} keys/sec (Threads: {})",
+                            total_attempts, matches_found, elapsed.as_secs_f64(), metrics.keys_per_second, thread_count));
+                        last_update = now;
+                    }
                 }
+            },
+
+            // Handle timeout to update display even if no status updates received
+            default(update_interval) => {
+                let now = Instant::now();
+                let elapsed = now.duration_since(start_time);
+                metrics.update(total_attempts, matches_found, elapsed);
+                pb.set_message(format!("Attempts: {} | Matches: {} | Duration: {:.2}s | Speed: {:.2} keys/sec (Threads: {})",
+                    total_attempts, matches_found, elapsed.as_secs_f64(), metrics.keys_per_second, thread_count));
+                last_update = now;
             }
         }
     }
@@ -188,9 +207,7 @@ pub fn stream_openssh_keys_and_match_mt(
 
     // Final update to metrics
     let elapsed = start_time.elapsed();
-    let attempts = total_attempts.load(Ordering::Relaxed);
-    let matches = matches_found.load(Ordering::Relaxed);
-    metrics.update(attempts, matches, elapsed);
+    metrics.update(total_attempts, matches_found, elapsed);
 
     Ok(metrics)
 }

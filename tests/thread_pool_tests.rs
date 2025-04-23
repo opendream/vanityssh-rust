@@ -16,10 +16,12 @@ fn test_thread_pool_basic() {
     };
 
     // Run the thread pool
-    let receiver = run_thread_pool(config).unwrap();
+    let (match_receiver, _status_receiver) = run_thread_pool(config).unwrap();
 
     // Wait for a match
-    let key_match = receiver.recv_timeout(Duration::from_secs(10)).unwrap();
+    let key_match = match_receiver
+        .recv_timeout(Duration::from_secs(10))
+        .unwrap();
 
     // Verify we got a valid key match
     assert!(!key_match.public_key.is_empty());
@@ -40,7 +42,7 @@ fn test_thread_pool_streaming() {
     };
 
     // Run the thread pool
-    let receiver = run_thread_pool(config).unwrap();
+    let (match_receiver, _status_receiver) = run_thread_pool(config).unwrap();
 
     // Get multiple matches
     let mut matches = 0;
@@ -48,7 +50,7 @@ fn test_thread_pool_streaming() {
 
     // Get up to 3 matches or timeout after 10 seconds
     while matches < 3 && start.elapsed() < Duration::from_secs(10) {
-        if receiver.recv_timeout(Duration::from_secs(1)).is_ok() {
+        if match_receiver.recv_timeout(Duration::from_secs(1)).is_ok() {
             matches += 1;
         }
     }
