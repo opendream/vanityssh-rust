@@ -3,22 +3,16 @@
 
 use crate::error::Result;
 use crate::ssh::{private_key, public_key};
-use ed25519_dalek::{SecretKey, SigningKey, VerifyingKey};
+use ed25519_dalek::{SigningKey, VerifyingKey};
 use rand::rngs::OsRng;
-use rand::RngCore;
 
 /// Generates an ed25519 key pair and returns the public key and private key as hex strings.
 pub fn generate_key_pair() -> Result<(String, String)> {
     // Use the OS's random number generator
     let mut csprng = OsRng {};
 
-    // Generate a random secret key
-    let mut secret_key_bytes = [0u8; 32];
-    csprng.fill_bytes(&mut secret_key_bytes);
-    let secret_key = SecretKey::from(secret_key_bytes);
-
-    // Create the signing key and verifying key
-    let signing_key = SigningKey::from(secret_key);
+    // Generate signing and verifying keys directly
+    let signing_key = SigningKey::generate(&mut csprng);
     let verifying_key = VerifyingKey::from(&signing_key);
 
     // Convert the public key to a hexadecimal string
@@ -38,13 +32,8 @@ pub fn generate_openssh_key_pair(comment: Option<&str>) -> Result<(String, Strin
     // Use the OS's random number generator
     let mut csprng = OsRng {};
 
-    // Generate a random secret key
-    let mut secret_key_bytes = [0u8; 32];
-    csprng.fill_bytes(&mut secret_key_bytes);
-    let secret_key = SecretKey::from(secret_key_bytes);
-
-    // Create the signing key and verifying key
-    let signing_key = SigningKey::from(secret_key);
+    // Generate signing and verifying keys directly
+    let signing_key = SigningKey::generate(&mut csprng);
     let verifying_key = VerifyingKey::from(&signing_key);
 
     // Get the raw key bytes
@@ -54,7 +43,7 @@ pub fn generate_openssh_key_pair(comment: Option<&str>) -> Result<(String, Strin
     // Encode to OpenSSH format
     let ssh_public_key = public_key::encode_ssh_public_key(&public_key_bytes, comment)?;
     let ssh_private_key =
-        private_key::encode_ssh_private_key(&public_key_bytes, &private_key_bytes)?;
+        private_key::encode_ssh_private_key(&public_key_bytes, &private_key_bytes, comment)?;
 
     Ok((ssh_public_key, ssh_private_key))
 }

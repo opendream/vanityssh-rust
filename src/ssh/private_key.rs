@@ -8,7 +8,11 @@ use byteorder::{BigEndian, WriteBytesExt};
 
 /// Encodes an Ed25519 keypair in OpenSSH private key format.
 /// Returns a string in PEM-like format with BEGIN/END markers.
-pub fn encode_ssh_private_key(public_key: &[u8], private_key: &[u8]) -> Result<String> {
+pub fn encode_ssh_private_key(
+    public_key: &[u8],
+    private_key: &[u8],
+    comment: Option<&str>,
+) -> Result<String> {
     // Create the binary blob for the private key
     let mut blob = Vec::new();
 
@@ -62,7 +66,8 @@ pub fn encode_ssh_private_key(public_key: &[u8], private_key: &[u8]) -> Result<S
     write_length_prefixed_bytes(&mut private_blob, &private_key_data)?;
 
     // 7.5 Write comment
-    write_length_prefixed_string(&mut private_blob, DEFAULT_COMMENT)?;
+    let comment = comment.unwrap_or(DEFAULT_COMMENT);
+    write_length_prefixed_string(&mut private_blob, comment)?;
 
     // 7.6 Padding (pad to multiple of 8 bytes)
     let padding_len = 8 - (private_blob.len() % 8);
