@@ -54,7 +54,7 @@ pub fn generate_openssh_key_pair(comment: Option<&str>) -> Result<(String, Strin
     // Encode to OpenSSH format
     let ssh_public_key = public_key::encode_ssh_public_key(&public_key_bytes, comment)?;
     let ssh_private_key =
-        private_key::encode_ssh_private_key(&public_key_bytes, &private_key_bytes)?;
+        private_key::encode_ssh_private_key(&public_key_bytes, &private_key_bytes, comment)?;
 
     Ok((ssh_public_key, ssh_private_key))
 }
