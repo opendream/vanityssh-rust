@@ -134,7 +134,9 @@ pub fn stream_openssh_keys_and_match_mt(
             recv(match_receiver) -> msg => {
                 if let Ok(key_match) = msg {
                     // Update counters with the match information
-                    total_attempts += key_match.attempts;
+                    // Attempts for this thread have already been accounted for
+                    // through status updates. Only increment the match count
+                    // when a new key is found.
                     matches_found += 1;
 
                     let timestamp = Local::now().format("%Y-%m-%d %H:%M:%S");
