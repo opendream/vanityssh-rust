@@ -1,0 +1,86 @@
+version: 2
+updates:
+  # Cargo dependencies
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    
+    # PR management
+    open-pull-requests-limit: 5
+    target-branch: "main"
+    
+    # Auto-merge patch updates (e.g., 1.0.1 -> 1.0.2)
+    # This is safe for bug fixes and security patches
+    enable-beta-ecosystems: true
+    
+    # Group related dependencies to reduce PR noise
+    groups:
+      # Cryptography and security-critical dependencies
+      crypto:
+        patterns:
+          - "ed25519-*"
+          - "rand*"
+          - "sha*"
+          - "curve25519-*"
+          - "digest*"
+          - "crypto-*"
+        update-types:
+          - "minor"
+          - "patch"
+      
+      # Development and testing tools
+      dev-tools:
+        patterns:
+          - "assert_cmd"
+          - "predicates"
+          - "tempfile"
+          - "criterion*"
+        update-types:
+          - "minor" 
+          - "patch"
+      
+      # Build and utility dependencies
+      utilities:
+        patterns:
+          - "anyhow"
+          - "thiserror"
+          - "indicatif"
+          - "chrono"
+          - "base64"
+          - "hex"
+          - "regex*"
+        update-types:
+          - "minor"
+          - "patch"
+      
+      # Threading and performance
+      threading:
+        patterns:
+          - "crossbeam*"
+          - "num_cpus"
+          - "rayon*"
+        update-types:
+          - "minor"
+          - "patch"
+    
+    # Commit message preferences
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps(dev)"
+      include: "scope"
+    
+    # Security updates get higher priority
+    labels:
+      - "dependencies"
+      - "security"
+    
+    # Ignore specific updates if needed (can be added later)
+    ignore: []
+    
+    # Review settings
+    reviewers: []  # Can add GitHub usernames here
+    assignees: []  # Can add GitHub usernames here
