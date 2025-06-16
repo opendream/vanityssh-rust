@@ -94,11 +94,9 @@ pub fn stream_openssh_keys_and_match_mt(
 
     // Setup progress bar
     let mut pb = ProgressBar::new_spinner();
-    pb.set_style(
-        ProgressStyle::default_spinner()
-            .template("{spinner:.green} {msg}")
-            .unwrap(),
-    );
+    if let Ok(style) = ProgressStyle::default_spinner().template("{spinner:.green} {msg}") {
+        pb.set_style(style);
+    }
 
     // Performance tracking
     let start_time = Instant::now();
@@ -115,7 +113,7 @@ pub fn stream_openssh_keys_and_match_mt(
     };
 
     // Start the thread pool
-    let (match_receiver, status_receiver) = run_thread_pool(config)?;
+    let (match_receiver, status_receiver, thread_pool_handle) = run_thread_pool(config)?;
 
     // Track attempts and matches
     let mut total_attempts: u64 = 0;
@@ -165,11 +163,9 @@ pub fn stream_openssh_keys_and_match_mt(
                     // In streaming mode, we need to completely recreate the progress bar
                     // rather than just reinitializing it
                     pb = ProgressBar::new_spinner();
-                    pb.set_style(
-                        ProgressStyle::default_spinner()
-                            .template("{spinner:.green} {msg}")
-                            .unwrap(),
-                    );
+                    if let Ok(style) = ProgressStyle::default_spinner().template("{spinner:.green} {msg}") {
+                        pb.set_style(style);
+                    }
                     pb.enable_steady_tick(Duration::from_millis(100));
 
                     // Reset update timer to ensure immediate refresh
@@ -223,6 +219,11 @@ pub fn stream_openssh_keys_and_match_mt(
     }
 
     pb.finish_and_clear();
+
+    // Clean shutdown of thread pool
+    if thread_pool_handle.join().is_err() {
+        eprintln!("Warning: Some worker threads did not shutdown cleanly");
+    }
 
     // Final update to metrics
     let elapsed = start_time.elapsed();

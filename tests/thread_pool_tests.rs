@@ -16,7 +16,7 @@ fn test_thread_pool_basic() {
     };
 
     // Run the thread pool
-    let (match_receiver, _status_receiver) = run_thread_pool(config).unwrap();
+    let (match_receiver, _status_receiver, thread_handle) = run_thread_pool(config).unwrap();
 
     // Wait for a match
     let key_match = match_receiver
@@ -28,6 +28,10 @@ fn test_thread_pool_basic() {
     assert!(!key_match.private_key.is_empty());
     assert!(key_match.attempts > 0);
     assert!(key_match.thread_id < 2); // Should be thread 0 or 1
+
+    // Clean shutdown
+    thread_handle.terminate();
+    let _ = thread_handle.join();
 }
 
 #[test]
@@ -42,7 +46,7 @@ fn test_thread_pool_streaming() {
     };
 
     // Run the thread pool
-    let (match_receiver, _status_receiver) = run_thread_pool(config).unwrap();
+    let (match_receiver, _status_receiver, thread_handle) = run_thread_pool(config).unwrap();
 
     // Get multiple matches
     let mut matches = 0;
@@ -57,4 +61,8 @@ fn test_thread_pool_streaming() {
 
     // Should get at least one match
     assert!(matches > 0);
+
+    // Clean shutdown
+    thread_handle.terminate();
+    let _ = thread_handle.join();
 }

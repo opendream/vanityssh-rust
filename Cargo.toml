@@ -11,18 +11,18 @@ categories = ["command-line-utilities", "cryptography"]
 
 [dependencies]
 ed25519-dalek = "2"
-rand = "0.7.3"
-regex = "1.8.1"
-anyhow = "1.0.69"
-thiserror = "1.0.39"
-indicatif = "0.17.3"
-chrono = "0.4.24"
-base64 = "0.21.0"
+rand = "0.8.5"
+regex = "1.10.2"
+anyhow = "1.0.89"
+thiserror = "1.0.65"
+indicatif = "0.17.8"
+chrono = "0.4.38"
+base64 = "0.22.1"
 byteorder = "1.4.3"
 hex = "0.4.3"
 num_cpus = "1.16.0"
-crossbeam = "0.8.2"
-crossbeam-channel = "0.5.8"
+crossbeam = "0.8.4"
+crossbeam-channel = "0.5.13"
 
 [dev-dependencies]
 assert_cmd = "2.0.10"
