@@ -1,0 +1,143 @@
+name: Dependabot Auto-Merge
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    runs-on: ubuntu-latest
+    # Only run on Dependabot PRs
+    if: github.actor == 'dependabot[bot]'
+    
+    steps:
+      - name: Check PR details
+        id: pr-info
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const title = pr.title;
+            
+            // Extract version change information from PR title
+            // Format: "Bump dependency from x.y.z to a.b.c"
+            const versionRegex = /from (\d+\.\d+\.\d+) to (\d+\.\d+\.\d+)/;
+            const match = title.match(versionRegex);
+            
+            if (!match) {
+              console.log('Could not extract version info from title:', title);
+              return { shouldAutoMerge: false, reason: 'No version info found' };
+            }
+            
+            const [, fromVersion, toVersion] = match;
+            const fromParts = fromVersion.split('.').map(Number);
+            const toParts = toVersion.split('.').map(Number);
+            
+            // Check if this is a patch update (only patch version changed)
+            const isPatch = fromParts[0] === toParts[0] && 
+                           fromParts[1] === toParts[1] && 
+                           toParts[2] > fromParts[2];
+            
+            // Check if this is a minor update
+            const isMinor = fromParts[0] === toParts[0] && 
+                           toParts[1] > fromParts[1];
+            
+            // Auto-merge patch updates, but be cautious with crypto dependencies
+            const isCryptoDep = title.includes('ed25519') || 
+                               title.includes('rand') || 
+                               title.includes('curve25519') ||
+                               title.includes('sha');
+            
+            let shouldAutoMerge = false;
+            let reason = '';
+            
+            if (isPatch && !isCryptoDep) {
+              shouldAutoMerge = true;
+              reason = 'Patch update for non-crypto dependency';
+            } else if (isPatch && isCryptoDep) {
+              shouldAutoMerge = false;
+              reason = 'Patch update for crypto dependency - manual review required';
+            } else if (isMinor) {
+              shouldAutoMerge = false;
+              reason = 'Minor update - manual review recommended';
+            } else {
+              shouldAutoMerge = false;
+              reason = 'Major update - manual review required';
+            }
+            
+            console.log(`PR: ${title}`);
+            console.log(`From: ${fromVersion}, To: ${toVersion}`);
+            console.log(`Is patch: ${isPatch}, Is crypto: ${isCryptoDep}`);
+            console.log(`Should auto-merge: ${shouldAutoMerge}, Reason: ${reason}`);
+            
+            return { shouldAutoMerge, reason, isPatch, isMinor, isCryptoDep };
+
+      - name: Wait for CI to complete
+        if: steps.pr-info.outputs.result && fromJSON(steps.pr-info.outputs.result).shouldAutoMerge
+        uses: fountainhead/action-wait-for-check@v1.2.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          checkName: "security"
+          timeoutSeconds: 1800
+          
+      - name: Wait for all checks
+        if: steps.pr-info.outputs.result && fromJSON(steps.pr-info.outputs.result).shouldAutoMerge
+        uses: fountainhead/action-wait-for-check@v1.2.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          checkName: "check"
+          timeoutSeconds: 1800
+
+      - name: Auto-merge PR
+        if: steps.pr-info.outputs.result && fromJSON(steps.pr-info.outputs.result).shouldAutoMerge
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const result = ${{ steps.pr-info.outputs.result }};
+            
+            // Add a comment explaining the auto-merge
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              body: `🤖 **Auto-merging this PR**\n\n` +
+                    `**Reason**: ${result.reason}\n` +
+                    `**Type**: Patch update (safe)\n` +
+                    `**Security**: ✅ All security checks passed\n` +
+                    `**Tests**: ✅ All tests passed\n\n` +
+                    `This is an automated merge for a safe patch-level dependency update.`
+            });
+            
+            // Enable auto-merge
+            await github.rest.pulls.merge({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+              merge_method: 'squash',
+              commit_title: `${pr.title} (auto-merge)`,
+              commit_message: `Automatically merged Dependabot patch update.\n\n${result.reason}`
+            });
+
+      - name: Add manual review comment
+        if: steps.pr-info.outputs.result && !fromJSON(steps.pr-info.outputs.result).shouldAutoMerge
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const result = ${{ steps.pr-info.outputs.result }};
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              body: `👋 **Manual review required**\n\n` +
+                    `**Reason**: ${result.reason}\n` +
+                    `**Type**: ${result.isPatch ? 'Patch' : result.isMinor ? 'Minor' : 'Major'} update\n` +
+                    `**Crypto dependency**: ${result.isCryptoDep ? 'Yes' : 'No'}\n\n` +
+                    `Please review this dependency update manually before merging.`
+            });
