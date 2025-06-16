@@ -13,9 +13,8 @@ updates:
     open-pull-requests-limit: 5
     target-branch: "main"
     
-    # Auto-merge patch updates (e.g., 1.0.1 -> 1.0.2)
-    # This is safe for bug fixes and security patches
-    enable-beta-ecosystems: true
+    # Note: Auto-merge is handled by our custom workflow
+    # No need for enable-beta-ecosystems (not supported in cargo ecosystem)
     
     # Group related dependencies to reduce PR noise
     groups:
@@ -78,9 +77,5 @@ updates:
       - "dependencies"
       - "security"
     
-    # Ignore specific updates if needed (can be added later)
-    ignore: []
-    
-    # Review settings
-    reviewers: []  # Can add GitHub usernames here
-    assignees: []  # Can add GitHub usernames here
+    # Note: ignore, reviewers, and assignees can be added later when needed
+    # Empty arrays cause schema validation errors, so they're omitted
