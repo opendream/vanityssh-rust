@@ -1,0 +1,202 @@
+name: Security Scanning
+
+on:
+  push:
+    branches: [ main, master ]
+    paths-ignore:
+      - '*.md'
+      - 'LICENSE*'
+      - '.gitignore'
+      - 'docs/**'
+  pull_request:
+    branches: [ main, master ]
+    paths-ignore:
+      - '*.md'
+      - 'LICENSE*'
+      - '.gitignore'
+      - 'docs/**'
+  schedule:
+    # Run security scan daily at 2 AM UTC (10 AM Thailand time)
+    - cron: '0 2 * * *'
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  cargo-audit:
+    name: Cargo Security Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo audit
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/cargo-audit
+          key: ${{ runner.os }}-cargo-audit
+
+      - name: Install cargo-audit
+        run: cargo install --locked cargo-audit
+
+      - name: Run cargo audit
+        run: cargo audit --json --output audit-results.json
+        continue-on-error: true
+
+      - name: Upload audit results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: audit-results.sarif
+        continue-on-error: true
+
+      - name: Convert audit results to SARIF
+        if: always()
+        run: |
+          # Convert cargo-audit JSON to SARIF format
+          cat > convert-audit-sarif.py << 'EOF'
+          #!/usr/bin/env python3
+          import json
+          import sys
+          from datetime import datetime
+
+          def convert_audit_to_sarif(audit_file, sarif_file):
+              try:
+                  with open(audit_file, 'r') as f:
+                      audit_data = json.load(f)
+              except (FileNotFoundError, json.JSONDecodeError):
+                  # Create empty SARIF if audit file doesn't exist or is invalid
+                  audit_data = {"vulnerabilities": {"list": []}}
+
+              sarif = {
+                  "version": "2.1.0",
+                  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+                  "runs": [{
+                      "tool": {
+                          "driver": {
+                              "name": "cargo-audit",
+                              "version": "0.18.0",
+                              "informationUri": "https://github.com/RustSec/rustsec"
+                          }
+                      },
+                      "results": []
+                  }]
+              }
+
+              # Process vulnerabilities
+              vulnerabilities = audit_data.get("vulnerabilities", {}).get("list", [])
+              for vuln in vulnerabilities:
+                  advisory = vuln.get("advisory", {})
+                  package = vuln.get("package", {})
+                  
+                  result = {
+                      "ruleId": advisory.get("id", "unknown"),
+                      "message": {
+                          "text": f"Vulnerability in {package.get('name', 'unknown')} {package.get('version', 'unknown')}: {advisory.get('title', 'No title')}"
+                      },
+                      "level": "error" if advisory.get("severity") in ["high", "critical"] else "warning",
+                      "locations": [{
+                          "physicalLocation": {
+                              "artifactLocation": {
+                                  "uri": "Cargo.toml"
+                              },
+                              "region": {
+                                  "startLine": 1,
+                                  "startColumn": 1
+                              }
+                          }
+                      }],
+                      "properties": {
+                          "security-severity": advisory.get("severity", "unknown"),
+                          "package": package.get("name", "unknown"),
+                          "version": package.get("version", "unknown"),
+                          "advisory-url": advisory.get("url", ""),
+                          "patched-versions": ", ".join(advisory.get("patched_versions", [])),
+                          "unaffected-versions": ", ".join(advisory.get("unaffected_versions", []))
+                      }
+                  }
+                  sarif["runs"][0]["results"].append(result)
+
+              with open(sarif_file, 'w') as f:
+                  json.dump(sarif, f, indent=2)
+
+          if __name__ == "__main__":
+              convert_audit_to_sarif("audit-results.json", "audit-results.sarif")
+          EOF
+
+          python3 convert-audit-sarif.py
+
+      - name: Check for vulnerabilities
+        run: |
+          if [ -f audit-results.json ]; then
+            vuln_count=$(jq '.vulnerabilities.count // 0' audit-results.json)
+            if [ "$vuln_count" -gt 0 ]; then
+              echo "🚨 Found $vuln_count vulnerabilities!"
+              jq -r '.vulnerabilities.list[] | "- \(.advisory.id): \(.advisory.title) in \(.package.name) \(.package.version)"' audit-results.json
+              exit 1
+            else
+              echo "✅ No vulnerabilities found"
+            fi
+          else
+            echo "✅ No audit results file found, assuming no vulnerabilities"
+          fi
+
+  advanced-security:
+    name: Advanced Security Analysis
+    runs-on: ubuntu-latest
+    if: github.event_name != 'schedule'
+    
+    steps:
+      - name: Checkout code  
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: rust
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build for CodeQL
+        run: cargo build --release
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:rust"
+
+  security-report:
+    name: Security Report
+    runs-on: ubuntu-latest
+    needs: [cargo-audit, advanced-security]
+    if: always()
+    
+    steps:
+      - name: Security Status Summary
+        run: |
+          echo "## 🔒 Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ needs.cargo-audit.result }}" == "success" ]; then
+            echo "✅ **Cargo Audit**: No vulnerabilities found" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Cargo Audit**: Vulnerabilities detected" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.advanced-security.result }}" == "success" ]; then
+            echo "✅ **CodeQL Analysis**: No issues found" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.advanced-security.result }}" == "skipped" ]; then
+            echo "⏭️ **CodeQL Analysis**: Skipped (scheduled run)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **CodeQL Analysis**: Issues detected" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📊 **Full Results**: Check the [Security tab](https://github.com/${{ github.repository }}/security) for detailed analysis" >> $GITHUB_STEP_SUMMARY

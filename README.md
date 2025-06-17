@@ -1,6 +1,7 @@
 # VanitySSH
 
 [![Build Status](https://github.com/opendream/vanityssh-rust/actions/workflows/ci.yml/badge.svg)](https://github.com/opendream/vanityssh-rust/actions/workflows/ci.yml)
+[![Security](https://github.com/opendream/vanityssh-rust/actions/workflows/security.yml/badge.svg)](https://github.com/opendream/vanityssh-rust/actions/workflows/security.yml)
 
 Generate SSH key pairs whose public keys match a user-specified regex pattern. This tool creates ed25519 SSH keys with OpenSSH-compatible formatting and searches for keys that match custom patterns in their base64-encoded representation.
 
@@ -92,6 +93,28 @@ Keep in mind that more complex or specific patterns will take longer to match.
 - Key generation is CPU-intensive; expect high CPU usage
 - The more specific your pattern, the longer it will take to find a match
 - Use `--threads` to control CPU utilization if needed
+
+## Security
+
+VanitySSH prioritizes security in SSH key generation:
+
+### 🔒 Cryptographic Security
+- **Ed25519 Only**: Uses only Ed25519 cryptographic keys (considered one of the most secure elliptic curve algorithms)
+- **Secure Random Generation**: Uses OS-provided cryptographically secure random number generation
+- **Memory Safety**: Written in Rust for memory safety guarantees
+- **No Key Storage**: Generated keys are never stored during the generation process
+
+### 🛡️ Automated Security
+- **Daily Security Scans**: Automated vulnerability scanning with `cargo-audit`
+- **Dependency Updates**: Dependabot automatically updates dependencies for security patches
+- **CodeQL Analysis**: Advanced static analysis for security vulnerabilities
+- **SARIF Reporting**: Security findings integrated with GitHub Security tab
+
+### 📋 Security Policy
+For security issues or questions:
+- **Security Policy**: See [SECURITY.md](SECURITY.md) for our complete security policy
+- **Vulnerability Reporting**: Email security issues to [keng@opendream.co.th](mailto:keng@opendream.co.th)
+- **Security Updates**: Monitor our [Security Advisories](https://github.com/opendream/vanityssh-rust/security/advisories)
 
 ## Using Generated Keys
 
