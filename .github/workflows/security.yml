@@ -43,6 +43,7 @@ jobs:
           key: ${{ runner.os }}-cargo-audit
 
       - name: Install cargo-audit
+        shell: bash
         run: |
           if ! command -v cargo-audit &> /dev/null; then
             cargo install --locked cargo-audit
