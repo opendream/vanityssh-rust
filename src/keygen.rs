@@ -5,13 +5,18 @@ use crate::error::Result;
 use crate::ssh::{private_key, public_key};
 use ed25519_dalek::{SecretKey, SigningKey, VerifyingKey};
 use rand::rngs::OsRng;
-use rand::RngCore;
+use rand::TryRngCore;
 
 /// Generates an ed25519 key pair and returns the public key and private key as hex strings.
 pub fn generate_key_pair() -> Result<(String, String)> {
     // Generate a random secret key
     let mut secret_key_bytes = [0u8; 32];
-    OsRng.fill_bytes(&mut secret_key_bytes);
+    OsRng.try_fill_bytes(&mut secret_key_bytes).map_err(|e| {
+        crate::error::VanityError::KeyGenerationError(format!(
+            "Failed to generate random bytes: {}",
+            e
+        ))
+    })?;
     let secret_key = SecretKey::from(secret_key_bytes);
     let signing_key = SigningKey::from(secret_key);
     let verifying_key = VerifyingKey::from(&signing_key);
@@ -32,7 +37,12 @@ pub fn generate_key_pair() -> Result<(String, String)> {
 pub fn generate_openssh_key_pair(comment: Option<&str>) -> Result<(String, String)> {
     // Generate a random secret key
     let mut secret_key_bytes = [0u8; 32];
-    OsRng.fill_bytes(&mut secret_key_bytes);
+    OsRng.try_fill_bytes(&mut secret_key_bytes).map_err(|e| {
+        crate::error::VanityError::KeyGenerationError(format!(
+            "Failed to generate random bytes: {}",
+            e
+        ))
+    })?;
     let secret_key = SecretKey::from(secret_key_bytes);
     let signing_key = SigningKey::from(secret_key);
     let verifying_key = VerifyingKey::from(&signing_key);
