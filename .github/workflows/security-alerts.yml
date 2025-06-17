@@ -1,0 +1,168 @@
+name: Security Alerts
+
+on:
+  schedule:
+    # Check for new security advisories daily at 1 AM UTC (9 AM Thailand time)
+    - cron: '0 1 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  security-events: read
+
+jobs:
+  security-advisory-check:
+    name: Check Security Advisories
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-audit
+        shell: bash
+        run: |
+          if ! command -v cargo-audit &> /dev/null; then
+            cargo install --locked cargo-audit
+          else
+            echo "cargo-audit already installed"
+          fi
+
+      - name: Run security audit with detailed output
+        id: audit
+        run: |
+          # Run audit and capture output
+          if cargo audit --json > audit-results.json 2>&1; then
+            echo "audit_status=success" >> $GITHUB_OUTPUT
+            echo "vulnerabilities_found=0" >> $GITHUB_OUTPUT
+          else
+            echo "audit_status=failed" >> $GITHUB_OUTPUT
+            vuln_count=$(jq '.vulnerabilities.count // 0' audit-results.json 2>/dev/null || echo "0")
+            echo "vulnerabilities_found=$vuln_count" >> $GITHUB_OUTPUT
+            
+            # Extract vulnerability details for issue creation
+            if [ -f audit-results.json ] && [ "$vuln_count" -gt 0 ]; then
+              jq -r '.vulnerabilities.list[] | @json' audit-results.json > vulnerabilities.jsonl
+            fi
+          fi
+
+      - name: Create security issues for new vulnerabilities
+        if: steps.audit.outputs.vulnerabilities_found != '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            
+            if (!fs.existsSync('vulnerabilities.jsonl')) {
+              console.log('No vulnerabilities file found');
+              return;
+            }
+            
+            const vulnerabilities = fs.readFileSync('vulnerabilities.jsonl', 'utf8')
+              .split('\n')
+              .filter(line => line.trim())
+              .map(line => JSON.parse(line));
+            
+            for (const vuln of vulnerabilities) {
+              const advisory = vuln.advisory;
+              const package = vuln.package;
+              
+              const title = `🚨 Security: ${advisory.id} in ${package.name} ${package.version}`;
+              
+              // Check if issue already exists
+              const existingIssues = await github.rest.issues.listForRepo({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                state: 'open',
+                labels: 'security,vulnerability'
+              });
+              
+              const issueExists = existingIssues.data.some(issue => 
+                issue.title.includes(advisory.id) || issue.body.includes(advisory.id)
+              );
+              
+              if (issueExists) {
+                console.log(`Issue for ${advisory.id} already exists, skipping`);
+                continue;
+              }
+              
+              const severity = advisory.severity || 'unknown';
+              const severityEmoji = {
+                'critical': '🔴',
+                'high': '🟠', 
+                'medium': '🟡',
+                'low': '🟢',
+                'unknown': '⚪'
+              }[severity.toLowerCase()] || '⚪';
+              
+              const body = `## ${severityEmoji} Security Vulnerability Detected
+              
+              **Advisory ID**: ${advisory.id}
+              **Package**: ${package.name} 
+              **Current Version**: ${package.version}
+              **Severity**: ${severity.toUpperCase()}
+              
+              ### Description
+              ${advisory.title}
+              
+              ${advisory.description || 'No description available.'}
+              
+              ### Details
+              - **Date**: ${advisory.date}
+              - **URL**: ${advisory.url}
+              ${advisory.patched_versions && advisory.patched_versions.length > 0 ? 
+                `- **Patched Versions**: ${advisory.patched_versions.join(', ')}` : ''}
+              ${advisory.unaffected_versions && advisory.unaffected_versions.length > 0 ? 
+                `- **Unaffected Versions**: ${advisory.unaffected_versions.join(', ')}` : ''}
+              
+              ### Action Required
+              ${advisory.patched_versions && advisory.patched_versions.length > 0 ? 
+                '✅ **Update immediately** to a patched version listed above.' : 
+                '⚠️ **No patch available yet** - monitor for updates and consider temporary mitigations.'}
+              
+              ### Remediation Steps
+              1. Review the vulnerability details at: ${advisory.url}
+              2. ${advisory.patched_versions && advisory.patched_versions.length > 0 ? 
+                   `Update to patched version: \`cargo update ${package.name}\`` : 
+                   'Monitor advisory for patch availability'}
+              3. Test the application after updating
+              4. Close this issue once resolved
+              
+              ---
+              *This issue was automatically created by the security scanning workflow.*
+              *Last scan: ${new Date().toISOString()}*`;
+              
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: ['security', 'vulnerability', `severity-${severity.toLowerCase()}`]
+              });
+              
+              console.log(`Created security issue for ${advisory.id}`);
+            }
+
+      - name: Update security summary
+        if: always()
+        run: |
+          echo "## 🔒 Daily Security Check Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Date**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "**Vulnerabilities Found**: ${{ steps.audit.outputs.vulnerabilities_found }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Status**: ${{ steps.audit.outputs.audit_status }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ steps.audit.outputs.vulnerabilities_found }}" != "0" ]; then
+            echo "⚠️ **Action Required**: Security issues have been created automatically." >> $GITHUB_STEP_SUMMARY
+            echo "Check the [Issues tab](https://github.com/${{ github.repository }}/issues?q=is%3Aopen+label%3Asecurity) for details." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ **All Clear**: No security vulnerabilities detected." >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📊 **Security Dashboard**: [View Security tab](https://github.com/${{ github.repository }}/security)" >> $GITHUB_STEP_SUMMARY

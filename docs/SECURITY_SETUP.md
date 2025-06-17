@@ -31,6 +31,12 @@ VanitySSH implements a multi-layered security approach:
 - **Tools**: `cargo-audit` + CodeQL
 - **Reporting**: SARIF format to GitHub Security tab
 
+### 3. Security Alerts Workflow (`security-alerts.yml`)
+- **Trigger**: Daily at 1 AM UTC (9 AM Thailand time) + manual dispatch
+- **Scope**: Proactive security monitoring and alerting
+- **Features**: Automatic issue creation for new vulnerabilities
+- **Integration**: GitHub Issues with security labels
+
 #### Components:
 
 **Cargo Audit Job:**

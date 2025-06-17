@@ -2,6 +2,7 @@
 
 [![Build Status](https://github.com/opendream/vanityssh-rust/actions/workflows/ci.yml/badge.svg)](https://github.com/opendream/vanityssh-rust/actions/workflows/ci.yml)
 [![Security](https://github.com/opendream/vanityssh-rust/actions/workflows/security.yml/badge.svg)](https://github.com/opendream/vanityssh-rust/actions/workflows/security.yml)
+[![Security Alerts](https://github.com/opendream/vanityssh-rust/actions/workflows/security-alerts.yml/badge.svg)](https://github.com/opendream/vanityssh-rust/actions/workflows/security-alerts.yml)
 
 Generate SSH key pairs whose public keys match a user-specified regex pattern. This tool creates ed25519 SSH keys with OpenSSH-compatible formatting and searches for keys that match custom patterns in their base64-encoded representation.
 
@@ -106,9 +107,11 @@ VanitySSH prioritizes security in SSH key generation:
 
 ### 🛡️ Automated Security
 - **Daily Security Scans**: Automated vulnerability scanning with `cargo-audit`
+- **Security Alerts**: Automatic issue creation for new vulnerabilities
 - **Dependency Updates**: Dependabot automatically updates dependencies for security patches
 - **CodeQL Analysis**: Advanced static analysis for security vulnerabilities
 - **SARIF Reporting**: Security findings integrated with GitHub Security tab
+- **Multi-platform Scanning**: Security checks across Linux, macOS, and Windows
 
 ### 📋 Security Policy
 For security issues or questions:
