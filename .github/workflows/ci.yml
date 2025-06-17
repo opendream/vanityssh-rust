@@ -39,7 +39,12 @@ jobs:
           cache-directories: ~/.cargo/bin
 
       - name: Install cargo-audit
-        run: cargo install --locked cargo-audit
+        run: |
+          if ! command -v cargo-audit &> /dev/null; then
+            cargo install --locked cargo-audit
+          else
+            echo "cargo-audit already installed"
+          fi
 
       - name: Run security audit
         run: cargo audit

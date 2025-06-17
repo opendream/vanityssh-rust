@@ -43,7 +43,12 @@ jobs:
           key: ${{ runner.os }}-cargo-audit
 
       - name: Install cargo-audit
-        run: cargo install --locked cargo-audit
+        run: |
+          if ! command -v cargo-audit &> /dev/null; then
+            cargo install --locked cargo-audit
+          else
+            echo "cargo-audit already installed"
+          fi
 
       - name: Run cargo audit
         run: cargo audit --json --output audit-results.json
@@ -151,6 +156,9 @@ jobs:
     name: Advanced Security Analysis
     runs-on: ubuntu-latest
     if: github.event_name != 'schedule'
+    
+    env:
+      CODEQL_ENABLE_EXPERIMENTAL_FEATURES: true
     
     steps:
       - name: Checkout code  
