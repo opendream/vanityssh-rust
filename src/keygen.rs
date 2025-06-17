@@ -9,15 +9,10 @@ use rand::RngCore;
 
 /// Generates an ed25519 key pair and returns the public key and private key as hex strings.
 pub fn generate_key_pair() -> Result<(String, String)> {
-    // Use the OS's random number generator
-    let mut csprng = OsRng {};
-
     // Generate a random secret key
     let mut secret_key_bytes = [0u8; 32];
-    csprng.fill_bytes(&mut secret_key_bytes);
+    OsRng.fill_bytes(&mut secret_key_bytes);
     let secret_key = SecretKey::from(secret_key_bytes);
-
-    // Create the signing key and verifying key
     let signing_key = SigningKey::from(secret_key);
     let verifying_key = VerifyingKey::from(&signing_key);
 
@@ -35,15 +30,10 @@ pub fn generate_key_pair() -> Result<(String, String)> {
 /// - public_key is in the format "ssh-ed25519 BASE64..."
 /// - private_key is in the format "-----BEGIN OPENSSH PRIVATE KEY-----..."
 pub fn generate_openssh_key_pair(comment: Option<&str>) -> Result<(String, String)> {
-    // Use the OS's random number generator
-    let mut csprng = OsRng {};
-
     // Generate a random secret key
     let mut secret_key_bytes = [0u8; 32];
-    csprng.fill_bytes(&mut secret_key_bytes);
+    OsRng.fill_bytes(&mut secret_key_bytes);
     let secret_key = SecretKey::from(secret_key_bytes);
-
-    // Create the signing key and verifying key
     let signing_key = SigningKey::from(secret_key);
     let verifying_key = VerifyingKey::from(&signing_key);
 
