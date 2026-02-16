@@ -25,6 +25,6 @@ crossbeam = "0.8.4"
 crossbeam-channel = "0.5.13"
 
 [dev-dependencies]
-assert_cmd = "2.0.10"
-predicates = "3.0.3"
-tempfile = "3.6.0"
+assert_cmd = "2.1.2"
+predicates = "3.1.4"
+tempfile = "3.25.0"
